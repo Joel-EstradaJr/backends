@@ -1,0 +1,11 @@
+# Railway Deployment Template
+# This file helps Railway understand your project structure
+
+[build]
+  command = "npm run build"
+  
+[start]
+  command = "npm start"
+
+[env]
+  NODE_ENV = "production"
