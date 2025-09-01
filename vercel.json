@@ -13,7 +13,7 @@
     }
   ],
   "env": {
-    "DATABASE_URL": "@database_url",
-    "JWT_SECRET": "@jwt_secret"
+    "DATABASE_URL": "postgresql://postgres:effKOxYMcvVNWzvARArNnccrWjMMSBEl@maglev.proxy.rlwy.net:59715/railway",
+    "JWT_SECRET": "R1eahtvhPTvPeCfkXA2hbnFRv/QQQ4isWeGF18ywYw"
   }
 }
