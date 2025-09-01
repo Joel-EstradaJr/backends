@@ -1,9 +1,9 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
-type CorsHandler<T> = (request: Request) => Promise<T>;
+type CorsHandler<T> = (request: NextRequest) => Promise<T>;
 
 export function withCors<T>(handler: CorsHandler<T>) {
-  return async (request: Request): Promise<T> => {
+  return async (request: NextRequest): Promise<T> => {
     const response = await handler(request);
     
     // Add CORS headers if response is a NextResponse

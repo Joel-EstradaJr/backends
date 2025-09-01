@@ -272,6 +272,7 @@ model Bus {
   secondHandDetails     SecondHandDetails?
   brandNewDetails       BrandNewDetails?
   busOtherFiles         BusOtherFiles[]
+  busAssignments        BusAssignment[]
 
   @@map("bus")
 }
@@ -425,6 +426,7 @@ model BusAssignment {
   Status          BusOperationStatus @default(NotReady)
 
   Route Route @relation(fields: [RouteID], references: [RouteID])
+  Bus   Bus   @relation(fields: [BusID], references: [bus_id])
   RegularBusAssignment RegularBusAssignment?
 
   @@index([BusID])

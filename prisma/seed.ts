@@ -1,224 +1,452 @@
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient } from "@prisma/client";
 
-const prisma = new PrismaClient()
+const prisma = new PrismaClient();
+
+// Helpers
+const dec = (v: number) => v; // use plain numbers for Decimal fields
+const randPick = <T>(arr: readonly T[]) => arr[Math.floor(Math.random() * arr.length)];
+const addDays = (d: Date, days: number) => new Date(d.getTime() + days * 24 * 60 * 60 * 1000);
 
 async function main() {
-  console.log('🌱 Starting seed...')
+	// 1) Clean existing data (in dependency order to satisfy FK constraints)
+	await prisma.$transaction([
+		prisma.ticketBusTrip.deleteMany(), // not seeded, safe
+		prisma.busTrip.deleteMany(),
+		prisma.fixed.deleteMany(),
+		prisma.percentage.deleteMany(),
+		prisma.quota_Policy.deleteMany(),
+		prisma.regularBusAssignment.deleteMany(),
+		prisma.busAssignment.deleteMany(),
+		prisma.routeStop.deleteMany(),
+		prisma.route.deleteMany(),
+		prisma.stop.deleteMany(),
+		prisma.bus.deleteMany(),
+		prisma.benefit.deleteMany(),
+		prisma.deduction.deleteMany(),
+		prisma.attendance.deleteMany(),
+		prisma.benefitType.deleteMany(),
+		prisma.deductionType.deleteMany(),
+		prisma.position.deleteMany(),
+		prisma.department.deleteMany(),
+		prisma.inventoryItem.deleteMany(),
+		prisma.category.deleteMany(),
+		prisma.user.deleteMany(),
+		prisma.role.deleteMany(),
+		prisma.securityQuestion.deleteMany(),
+	]);
 
-  // Create Departments
-  const itDept = await prisma.department.upsert({
-    where: { id: 1 },
-    update: {},
-    create: {
-      departmentName: 'Information Technology',
-    },
-  })
+	// 2) HR Core: Departments, Positions, Employees (+ attendance, benefits, deductions)
+	const departmentNames = [
+		"Operations",
+		"Human Resources",
+		"Finance",
+		"Maintenance",
+		"IT",
+		"Logistics",
+		"Safety",
+		"Customer Service",
+		"Procurement",
+		"Compliance",
+	];
+	const departments = [] as { id: number; departmentName: string }[];
+	for (const departmentName of departmentNames) {
+		const d = await prisma.department.create({ data: { departmentName } });
+		departments.push(d);
+	}
 
-  const hrDept = await prisma.department.upsert({
-    where: { id: 2 },
-    update: {},
-    create: {
-      departmentName: 'Human Resources',
-    },
-  })
+	const positionSpecs = [
+		{ positionName: "Driver", dept: "Operations" },
+		{ positionName: "Conductor", dept: "Operations" },
+		{ positionName: "Dispatcher", dept: "Operations" },
+		{ positionName: "Mechanic", dept: "Maintenance" },
+		{ positionName: "HR Specialist", dept: "Human Resources" },
+		{ positionName: "Payroll Officer", dept: "Finance" },
+		{ positionName: "Accountant", dept: "Finance" },
+		{ positionName: "IT Support", dept: "IT" },
+		{ positionName: "Logistics Coordinator", dept: "Logistics" },
+		{ positionName: "Safety Officer", dept: "Safety" },
+	];
+	const positions = [] as { id: number; positionName: string }[];
+	for (const spec of positionSpecs) {
+		const dept = departments.find((d) => d.departmentName === spec.dept)!;
+		const p = await prisma.position.create({
+			data: { positionName: spec.positionName, departmentId: dept.id },
+		});
+		positions.push(p);
+	}
 
-  const opsDept = await prisma.department.upsert({
-    where: { id: 3 },
-    update: {},
-    create: {
-      departmentName: 'Operations',
-    },
-  })
+	// Create at least 12 employees to have enough drivers/conductors
+	const firstNames = [
+		"Juan",
+		"Maria",
+		"Jose",
+		"Ana",
+		"Pedro",
+		"Liza",
+		"Carlos",
+		"Rosa",
+		"Miguel",
+		"Elena",
+		"Mario",
+		"Carmen",
+	];
+	const lastNames = [
+		"Santos",
+		"Reyes",
+		"Cruz",
+		"Bautista",
+		"Garcia",
+		"Torres",
+		"Navarro",
+		"Ramos",
+		"Mendoza",
+		"Villanueva",
+		"Aquino",
+		"Dela Cruz",
+	];
 
-  // Create Positions
-  const devPosition = await prisma.position.upsert({
-    where: { id: 1 },
-    update: {},
-    create: {
-      positionName: 'Software Developer',
-      departmentId: itDept.id,
-    },
-  })
+	const employees: Array<Awaited<ReturnType<typeof prisma.employee.create>>> = [];
+	const today = new Date();
+	for (let i = 0; i < 12; i++) {
+		const isDriver = i < 5; // first 5 as drivers
+		const isConductor = i >= 5 && i < 10; // next 5 as conductors
+		const pos = isDriver
+			? positions.find((p) => p.positionName === "Driver")!
+			: isConductor
+			? positions.find((p) => p.positionName === "Conductor")!
+			: randPick(positions);
 
-  const hrPosition = await prisma.position.upsert({
-    where: { id: 2 },
-    update: {},
-    create: {
-      positionName: 'HR Specialist',
-      departmentId: hrDept.id,
-    },
-  })
+		const e = await prisma.employee.create({
+			data: {
+				employeeNumber: `EMP${String(i + 1).padStart(4, "0")}`,
+				firstName: firstNames[i % firstNames.length],
+				middleName: i % 3 === 0 ? "M" : null,
+				lastName: lastNames[i % lastNames.length],
+				suffix: i % 7 === 0 ? "Jr." : null,
+				employeeStatus: i % 11 === 0 ? "Inactive" : "Active",
+				hiredate: addDays(today, -365 - i * 10),
+				terminationDate: i % 11 === 0 ? addDays(today, -30) : null,
+				basicRate: dec(500 + i * 25),
+				positionId: pos.id,
+			},
+		});
+		employees.push(e);
+	}
 
-  const driverPosition = await prisma.position.upsert({
-    where: { id: 3 },
-    update: {},
-    create: {
-      positionName: 'Bus Driver',
-      departmentId: opsDept.id,
-    },
-  })
+	// Attendance: 3 per employee
+	for (const e of employees) {
+		for (let j = 0; j < 3; j++) {
+			await prisma.attendance.create({
+				data: {
+					date: addDays(today, -j - 1),
+					status: j % 2 === 0 ? "Present" : "On Leave",
+					employeeId: e.id,
+				},
+			});
+		}
+	}
 
-  const conductorPosition = await prisma.position.upsert({
-    where: { id: 4 },
-    update: {},
-    create: {
-      positionName: 'Bus Conductor',
-      departmentId: opsDept.id,
-    },
-  })
+	// Benefit & Deduction Types (>=10 each)
+	const benefitTypeNames = [
+		"Meal Allowance",
+		"Transport Allowance",
+		"Health Insurance",
+		"Life Insurance",
+		"Housing Allowance",
+		"Phone Allowance",
+		"Education Assistance",
+		"Performance Bonus",
+		"Overtime Pay",
+		"Hazard Pay",
+	];
+	const deductionTypeNames = [
+		"Tax",
+		"SSS",
+		"PhilHealth",
+		"Pag-IBIG",
+		"Loan Repayment",
+		"Late Penalty",
+		"Uniform Deduction",
+		"Advance Deduction",
+		"Health Deduction",
+		"Other Deduction",
+	];
 
-  // Create sample employees
-  const employees = await Promise.all([
-    prisma.employee.upsert({
-      where: { employeeNumber: 'EMP001' },
-      update: {},
-      create: {
-        employeeNumber: 'EMP001',
-        firstName: 'John',
-        lastName: 'Doe',
-        employeeStatus: 'Active',
-        hiredate: new Date('2023-01-15'),
-        basicRate: 50000.00,
-        positionId: devPosition.id,
-      },
-    }),
-    
-    prisma.employee.upsert({
-      where: { employeeNumber: 'EMP002' },
-      update: {},
-      create: {
-        employeeNumber: 'EMP002',
-        firstName: 'Jane',
-        lastName: 'Smith',
-        employeeStatus: 'Active',
-        hiredate: new Date('2023-02-01'),
-        basicRate: 45000.00,
-        positionId: hrPosition.id,
-      },
-    }),
+	const benefitTypes = [] as { id: number; name: string }[];
+	for (const name of benefitTypeNames) {
+		benefitTypes.push(await prisma.benefitType.create({ data: { name } }));
+	}
+	const deductionTypes = [] as { id: number; name: string }[];
+	for (const name of deductionTypeNames) {
+		deductionTypes.push(await prisma.deductionType.create({ data: { name } }));
+	}
 
-    prisma.employee.upsert({
-      where: { employeeNumber: 'EMP003' },
-      update: {},
-      create: {
-        employeeNumber: 'EMP003',
-        firstName: 'Mike',
-        lastName: 'Johnson',
-        employeeStatus: 'Active',
-        hiredate: new Date('2023-03-10'),
-        basicRate: 35000.00,
-        positionId: driverPosition.id,
-      },
-    }),
+	// Benefits & Deductions per employee (1-2 each, active)
+	for (const e of employees) {
+		const bCount = 1 + (e.id % 2);
+		for (let i = 0; i < bCount; i++) {
+			const bt = randPick(benefitTypes);
+			await prisma.benefit.create({
+				data: {
+					value: dec(500 + (e.id % 5) * 100 + i * 50),
+					frequency: i % 2 === 0 ? "Monthly" : "Semi-Monthly",
+					effectiveDate: addDays(today, -60),
+					endDate: null,
+					isActive: true,
+					employeeId: e.id,
+					benefitTypeId: bt.id,
+				},
+			});
+		}
 
-    prisma.employee.upsert({
-      where: { employeeNumber: 'EMP004' },
-      update: {},
-      create: {
-        employeeNumber: 'EMP004',
-        firstName: 'Sarah',
-        lastName: 'Williams',
-        employeeStatus: 'Active',
-        hiredate: new Date('2023-03-15'),
-        basicRate: 30000.00,
-        positionId: conductorPosition.id,
-      },
-    }),
-  ])
+		const dCount = 1 + ((e.id + 1) % 2);
+		for (let i = 0; i < dCount; i++) {
+			const dt = randPick(deductionTypes);
+			await prisma.deduction.create({
+				data: {
+					type: dt.name,
+					value: dec(100 + (e.id % 3) * 50 + i * 25),
+					frequency: "Monthly",
+					effectiveDate: addDays(today, -90),
+					endDate: null,
+					isActive: true,
+					employeeId: e.id,
+					deductionTypeId: dt.id,
+				},
+			});
+		}
+	}
 
-  // Create benefit and deduction types
-  const benefitType = await prisma.benefitType.upsert({
-    where: { name: 'Health Insurance' },
-    update: {},
-    create: {
-      name: 'Health Insurance',
-    },
-  })
+	// 3) Minimal auth + inventory prerequisites to satisfy Bus FKs
+	const role = await prisma.role.create({ data: { name: "Admin" } });
+	const sec = await prisma.securityQuestion.create({ data: { question: "Mother's maiden name?" } });
 
-  const deductionType = await prisma.deductionType.upsert({
-    where: { name: 'Tax' },
-    update: {},
-    create: {
-      name: 'Tax',
-    },
-  })
+	// Make first employee a user for created_by
+	const firstEmp = employees[0];
+	const user = await prisma.user.create({
+		data: {
+			employeeId: firstEmp.id,
+			email: "admin@example.com",
+			password: "$2a$10$abcdefghijklmnopqrstuv", // dummy bcrypt hash-like string
+			firstName: firstEmp.firstName,
+			lastName: firstEmp.lastName,
+			birthdate: addDays(today, -365 * 30),
+			roleId: role.id,
+			securityQuestionId: sec.id,
+			securityAnswer: "secret",
+			mustChangePassword: false,
+		},
+	});
 
-  // Create sample benefits and deductions for employees
-  for (const employee of employees) {
-    await prisma.benefit.upsert({
-      where: { 
-        id: employee.id 
-      },
-      update: {},
-      create: {
-        value: 5000.00,
-        frequency: 'Monthly',
-        effectiveDate: new Date('2023-01-01'),
-        isActive: true,
-        employeeId: employee.id,
-        benefitTypeId: benefitType.id,
-      },
-    })
+	const category = await prisma.category.create({
+		data: { category_id: "CAT001", category_name: "Vehicles" },
+	});
 
-    await prisma.deduction.upsert({
-      where: { 
-        id: employee.id 
-      },
-      update: {},
-      create: {
-        type: 'Percentage',
-        value: 10.00,
-        frequency: 'Monthly',
-        effectiveDate: new Date('2023-01-01'),
-        isActive: true,
-        employeeId: employee.id,
-        deductionTypeId: deductionType.id,
-      },
-    })
-  }
+	const invItem = await prisma.inventoryItem.create({
+		data: {
+			item_id: "ITEMBUS001",
+			category_id: category.category_id,
+			item_name: "Bus Stock Item",
+			unit_measure: "unit",
+			current_stock: 100,
+			reorder_level: 10,
+			status: "Available",
+			created_by: user.id,
+		},
+	});
 
-  // Create sample routes and stops
-  const startStop = await prisma.stop.upsert({
-    where: { StopID: 'STOP001' },
-    update: {},
-    create: {
-      StopID: 'STOP001',
-      StopName: 'Central Terminal',
-      latitude: '14.5995',
-      longitude: '120.9842',
-    },
-  })
+	// 4) Operations: Stops, Routes, Buses, Assignments, Quotas, Trips
+	// Stops (20)
+	const stops = [] as { StopID: string }[];
+	for (let i = 1; i <= 20; i++) {
+		const s = await prisma.stop.create({
+			data: {
+				StopID: `STOP${String(i).padStart(3, "0")}`,
+				StopName: `Stop ${i}`,
+				latitude: `14.${100 + i}`,
+				longitude: `121.${200 + i}`,
+			},
+		});
+		stops.push(s);
+	}
 
-  const endStop = await prisma.stop.upsert({
-    where: { StopID: 'STOP002' },
-    update: {},
-    create: {
-      StopID: 'STOP002',
-      StopName: 'North Terminal',
-      latitude: '14.6500',
-      longitude: '121.0300',
-    },
-  })
+	// Routes (10)
+	const routes = [] as { RouteID: string }[];
+	for (let i = 1; i <= 10; i++) {
+		const start = stops[(i - 1) * 2];
+		const end = stops[(i - 1) * 2 + 1];
+		const r = await prisma.route.create({
+			data: {
+				RouteID: `ROUTE${String(i).padStart(3, "0")}`,
+				RouteName: `Route ${i}: ${start.StopID} -> ${end.StopID}`,
+				StartStopID: start.StopID,
+				EndStopID: end.StopID,
+			},
+		});
+		routes.push(r);
+	}
 
-  const route = await prisma.route.upsert({
-    where: { RouteID: 'ROUTE001' },
-    update: {},
-    create: {
-      RouteID: 'ROUTE001',
-      RouteName: 'Central-North Express',
-      StartStopID: startStop.StopID,
-      EndStopID: endStop.StopID,
-    },
-  })
+	// Buses (10)
+	const busTypes = ["Aircon", "NonAircon"] as const;
+	const bodyBuilders = ["Isuzu", "Toyota", "Hyundai", "Mitsubishi"] as const;
+	const buses = [] as { bus_id: string }[];
+	for (let i = 1; i <= 10; i++) {
+		const b = await prisma.bus.create({
+			data: {
+				bus_id: `BUS${String(i).padStart(3, "0")}`,
+				item_id: invItem.item_id, // reuse same inventory item
+				plate_number: `ABC-${1000 + i}`,
+				body_number: `BN-${String(i).padStart(3, "0")}`,
+				body_builder: randPick(bodyBuilders),
+				bus_type: randPick(busTypes),
+				manufacturer: "Generic Motors",
+				status: "Active",
+				chasis_number: `CHS-${100000 + i}`,
+				engine_number: `ENG-${200000 + i}`,
+				seat_capacity: 40 + (i % 5) * 2,
+				model: `Model-${2010 + (i % 10)}`,
+				year_model: 2015 + (i % 8),
+				route: `R${i}`,
+				condition: "Good",
+				acquisition_date: addDays(today, -365 * (3 + (i % 3))),
+				acquisition_method: "Purchase",
+				warranty_expiration_date: addDays(today, 365 * 1),
+				registration_status: "Registered",
+				created_by: user.id,
+			},
+		});
+		buses.push(b);
+	}
 
-  console.log('✅ Seed completed successfully!')
+	// BusAssignments (10) one per bus/route
+	const busAssignments = [] as { BusAssignmentID: string; BusID: string }[];
+	for (let i = 1; i <= 10; i++) {
+		const a = await prisma.busAssignment.create({
+			data: {
+				BusAssignmentID: `ASSIGN${String(i).padStart(3, "0")}`,
+				BusID: buses[i - 1].bus_id,
+				RouteID: routes[i - 1].RouteID,
+				Battery: true,
+				Lights: true,
+				Oil: true,
+				Water: true,
+				Break: true,
+				Air: true,
+				Gas: true,
+				Engine: true,
+				TireCondition: true,
+				Self_Driver: false,
+				Self_Conductor: false,
+				IsDeleted: false,
+				Status: "Ready",
+			},
+		});
+		busAssignments.push(a);
+	}
+
+	// RegularBusAssignments (10) with drivers and conductors from our employees
+	const driverEmployees = employees.filter((e) => {
+		const p = positions.find((p) => p.id === e.positionId);
+		return p?.positionName === "Driver";
+	});
+	const conductorEmployees = employees.filter((e) => {
+		const p = positions.find((p) => p.id === e.positionId);
+		return p?.positionName === "Conductor";
+	});
+	const regularAssignments = [] as { RegularBusAssignmentID: string }[];
+	for (let i = 1; i <= 10; i++) {
+		const driver = driverEmployees[i % driverEmployees.length];
+		const conductor = conductorEmployees[i % conductorEmployees.length];
+		const ra = await prisma.regularBusAssignment.create({
+			data: {
+				RegularBusAssignmentID: `RASSIGN${String(i).padStart(3, "0")}`,
+				DriverID: driver.id,
+				ConductorID: conductor.id,
+				BusAssignmentID: busAssignments[i - 1].BusAssignmentID,
+			},
+		});
+		regularAssignments.push(ra);
+	}
+
+	// Quota Policies (>=10): alternate Fixed and Percentage; cover last month to next month
+	const quotaPolicies = [] as { QuotaPolicyID: string; RegularBusAssignmentID: string }[];
+	for (let i = 1; i <= 10; i++) {
+		const qp = await prisma.quota_Policy.create({
+			data: {
+				QuotaPolicyID: `QP${String(i).padStart(3, "0")}`,
+				StartDate: addDays(today, -30),
+				EndDate: addDays(today, 30),
+				RegularBusAssignmentID: regularAssignments[i - 1].RegularBusAssignmentID,
+			},
+		});
+		quotaPolicies.push(qp);
+
+		if (i % 2 === 0) {
+			await prisma.fixed.create({
+				data: {
+					FQuotaPolicyID: qp.QuotaPolicyID,
+					Quota: 5000 + (i % 3) * 1000,
+				},
+			});
+		} else {
+			await prisma.percentage.create({
+				data: {
+					PQuotaPolicyID: qp.QuotaPolicyID,
+					Percentage: 0.1 * (1 + (i % 3)), // 10% - 30%
+				},
+			});
+		}
+	}
+
+	// Bus Trips: 2 per regular assignment; ensure TripExpense & Sales set; vary recorded flags
+	for (let i = 0; i < regularAssignments.length; i++) {
+		const ra = regularAssignments[i];
+		for (let j = 1; j <= 2; j++) {
+			const dispatchedAt = addDays(today, -(i + j));
+			const bt = await prisma.busTrip.create({
+				data: {
+					BusTripID: `TRIP-${String(i + 1).padStart(3, "0")}-${j}`,
+					RegularBusAssignmentID: ra.RegularBusAssignmentID,
+					DispatchedAt: dispatchedAt,
+					TripExpense: dec(1000 + i * 50 + j * 20),
+					Sales: dec(3000 + i * 100 + j * 50),
+					Payment_Method: (j % 3 === 0 ? "Mixed" : j % 2 === 0 ? "Card" : "Cash"),
+					IsExpenseRecorded: j % 2 === 0, // alternate
+					IsRevenueRecorded: j % 3 === 0, // every third recorded
+				},
+			});
+			// Optionally set latest for every second assignment
+			if (j === 2 && i % 2 === 0) {
+				await prisma.regularBusAssignment.update({
+					where: { RegularBusAssignmentID: ra.RegularBusAssignmentID },
+					data: { LatestBusTripID: bt.BusTripID },
+				});
+			}
+		}
+	}
+
+	console.log("Seeding completed:");
+	console.log({
+		departments: departmentNames.length,
+		positions: positionSpecs.length,
+		employees: employees.length,
+		benefitTypes: benefitTypes.length,
+		deductionTypes: deductionTypes.length,
+		stops: stops.length,
+		routes: routes.length,
+		buses: buses.length,
+		busAssignments: busAssignments.length,
+		regularAssignments: regularAssignments.length,
+		quotaPolicies: quotaPolicies.length,
+	});
 }
 
 main()
-  .catch((e) => {
-    console.error('❌ Seed failed:', e)
-    process.exit(1)
-  })
-  .finally(async () => {
-    await prisma.$disconnect()
-  })
+	.catch((e) => {
+		console.error("Seed error:", e);
+		process.exit(1);
+	})
+	.finally(async () => {
+		await prisma.$disconnect();
+	});
+

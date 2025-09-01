@@ -1,3 +1,5 @@
+// endpoints\raw\op_bus-trip-details\route.txt
+
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/client';
 import { withCors } from '@/lib/withcors';
