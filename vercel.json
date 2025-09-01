@@ -1,17 +1,5 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "package.json",
-      "use": "@vercel/node"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "/"
-    }
-  ],
   "env": {
     "DATABASE_URL": "postgresql://postgres:effKOxYMcvVNWzvARArNnccrWjMMSBEl@maglev.proxy.rlwy.net:59715/railway",
     "JWT_SECRET": "R1eahtvhPTvPeCfkXA2hbnFRv/QQQ4isWeGF18ywYw"
