@@ -17,7 +17,7 @@ export const GET = withCors(async (request: NextRequest) => {
     const { searchParams } = new URL(request.url);
     const employeeNumber = searchParams.get("employeeNumber");
 
-    const employees = await prisma.employee.findMany({
+  const employees = await prisma.employee.findMany({
       where: {
         ...(employeeNumber ? { employeeNumber } : {}),
       },
@@ -88,7 +88,7 @@ export const GET = withCors(async (request: NextRequest) => {
     // Transform the data to match expected output format - convert Decimal values to strings
     const transformedEmployees = employees.map((employee: any) => ({
       ...employee,
-      basicRate: employee.basicRate.toString(),
+      basicRate: employee.basicRate ? employee.basicRate.toString() : null,
       benefits: employee.benefits.map((benefit: any) => ({
         ...benefit,
         value: benefit.value.toString(),

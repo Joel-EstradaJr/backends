@@ -3,14 +3,14 @@ import prisma from "@/client"; // make sure your Prisma client is properly expor
 
 export const GET = async (request: NextRequest) => {
   try {
-    const employees = await prisma.employee.findMany({
+  const employees = await prisma.employee.findMany({
       select: {
-        employeeNumber: true,
+    employeeNumber: true,
         firstName: true,
         middleName: true,
         lastName: true,
         suffix: true,
-        position: {
+    position: {
           select: {
             positionName: true,
             department: {

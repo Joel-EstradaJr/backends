@@ -48,7 +48,7 @@ async function main() {
 		"Procurement",
 		"Compliance",
 	];
-	const departments = [] as { id: number; departmentName: string }[];
+		const departments = [] as { id: number; departmentName: string }[];
 	for (const departmentName of departmentNames) {
 		const d = await prisma.department.create({ data: { departmentName } });
 		departments.push(d);
@@ -66,7 +66,7 @@ async function main() {
 		{ positionName: "Logistics Coordinator", dept: "Logistics" },
 		{ positionName: "Safety Officer", dept: "Safety" },
 	];
-	const positions = [] as { id: number; positionName: string }[];
+		const positions = [] as { id: number; positionName: string }[];
 	for (const spec of positionSpecs) {
 		const dept = departments.find((d) => d.departmentName === spec.dept)!;
 		const p = await prisma.position.create({
@@ -105,7 +105,7 @@ async function main() {
 		"Dela Cruz",
 	];
 
-	const employees: Array<Awaited<ReturnType<typeof prisma.employee.create>>> = [];
+		const employees: Array<Awaited<ReturnType<typeof prisma.employee.create>>> = [];
 	const today = new Date();
 	for (let i = 0; i < 12; i++) {
 		const isDriver = i < 5; // first 5 as drivers
@@ -116,33 +116,52 @@ async function main() {
 			? positions.find((p) => p.positionName === "Conductor")!
 			: randPick(positions);
 
-		const e = await prisma.employee.create({
-			data: {
-				employeeNumber: `EMP${String(i + 1).padStart(4, "0")}`,
-				firstName: firstNames[i % firstNames.length],
-				middleName: i % 3 === 0 ? "M" : null,
-				lastName: lastNames[i % lastNames.length],
-				suffix: i % 7 === 0 ? "Jr." : null,
-				employeeStatus: i % 11 === 0 ? "Inactive" : "Active",
-				hiredate: addDays(today, -365 - i * 10),
-				terminationDate: i % 11 === 0 ? addDays(today, -30) : null,
-				basicRate: dec(500 + i * 25),
-				positionId: pos.id,
-			},
-		});
+				const e = await prisma.employee.create({
+					data: ({
+					employeeNumber: `EMP${String(i + 1).padStart(4, "0")}`,
+					firstName: firstNames[i % firstNames.length],
+					lastName: lastNames[i % lastNames.length],
+					middleName: i % 3 === 0 ? "M" : null,
+					suffix: i % 7 === 0 ? "Jr." : null,
+					birthdate: addDays(today, -(365 * (25 + (i % 15)))),
+					hiredate: addDays(today, -365 - i * 10),
+					terminationDate: i % 11 === 0 ? addDays(today, -30) : null,
+					terminationReason: i % 11 === 0 ? "End of contract" : null,
+					basicRate: dec(500 + i * 25),
+					employeeStatus: i % 11 === 0 ? "inactive" : "active",
+					employeeType: i % 5 === 0 ? "contract" : "regular",
+					employeeClassification: i % 4 === 0 ? "Rank-and-File" : "Supervisory",
+					phone: `09${Math.floor(100000000 + Math.random() * 899999999)}`,
+					email: `emp${i + 1}@example.com`,
+					emergencyContactName: i % 2 === 0 ? "EC Name" : null,
+					emergencyContactNo: i % 2 === 0 ? "09123456789" : null,
+					barangay: "Barangay 1",
+					streetAddress: `Street ${i + 1}`,
+					city: "City",
+					province: "Province",
+					zipCode: "1234",
+					country: "PH",
+					positionId: pos.id,
+					expireDate: i % 6 === 0 ? addDays(today, 365) : null,
+					licenseNo: i % 3 === 0 ? `LIC-${1000 + i}` : null,
+					licenseType: i % 3 === 0 ? "Driver" : null,
+					restrictionCodes: i % 3 === 0 ? ["1", "2"] : [],
+					}) as any,
+			});
 		employees.push(e);
 	}
 
 	// Attendance: 3 per employee
 	for (const e of employees) {
 		for (let j = 0; j < 3; j++) {
-			await prisma.attendance.create({
-				data: {
-					date: addDays(today, -j - 1),
-					status: j % 2 === 0 ? "Present" : "On Leave",
-					employeeId: e.id,
-				},
-			});
+							await prisma.attendance.create({
+								data: {
+									employeeId: e.id,
+									date: addDays(today, -j - 1),
+									status: j % 2 === 0 ? "Present" : "On Leave",
+									isHoliday: false,
+								},
+							});
 		}
 	}
 
@@ -183,37 +202,37 @@ async function main() {
 
 	// Benefits & Deductions per employee (1-2 each, active)
 	for (const e of employees) {
-		const bCount = 1 + (e.id % 2);
+		const bCount = 1 + (Math.random() < 0.5 ? 0 : 1);
 		for (let i = 0; i < bCount; i++) {
 			const bt = randPick(benefitTypes);
-			await prisma.benefit.create({
-				data: {
-					value: dec(500 + (e.id % 5) * 100 + i * 50),
-					frequency: i % 2 === 0 ? "Monthly" : "Semi-Monthly",
-					effectiveDate: addDays(today, -60),
-					endDate: null,
-					isActive: true,
-					employeeId: e.id,
-					benefitTypeId: bt.id,
-				},
-			});
+					await prisma.benefit.create({
+						data: {
+							employeeId: e.id,
+							  value: dec(500 + (i % 5) * 100 + i * 50),
+							frequency: i % 2 === 0 ? "Monthly" : "Semi-Monthly",
+							effectiveDate: addDays(today, -60),
+							endDate: null,
+							isActive: true,
+							benefitTypeId: bt.id,
+						},
+					});
 		}
 
-		const dCount = 1 + ((e.id + 1) % 2);
+		const dCount = 1 + (Math.random() < 0.5 ? 0 : 1);
 		for (let i = 0; i < dCount; i++) {
 			const dt = randPick(deductionTypes);
-			await prisma.deduction.create({
-				data: {
-					type: dt.name,
-					value: dec(100 + (e.id % 3) * 50 + i * 25),
-					frequency: "Monthly",
-					effectiveDate: addDays(today, -90),
-					endDate: null,
-					isActive: true,
-					employeeId: e.id,
-					deductionTypeId: dt.id,
-				},
-			});
+					await prisma.deduction.create({
+						data: {
+							employeeId: e.id,
+							type: dt.name,
+							value: dec(100 + (i % 3) * 50 + i * 25),
+							frequency: "Monthly",
+							effectiveDate: addDays(today, -90),
+							endDate: null,
+							isActive: true,
+							deductionTypeId: dt.id,
+						},
+					});
 		}
 	}
 
