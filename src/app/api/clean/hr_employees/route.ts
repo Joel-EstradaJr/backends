@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/client"; // make sure your Prisma client is properly exported
-import { withCors } from "@/lib/withcors";
 
-export const GET = withCors(async (request: NextRequest) => {
+export const GET = async (request: NextRequest) => {
   try {
   const employees = await prisma.employee.findMany({
       select: {
@@ -51,8 +50,7 @@ export const GET = withCors(async (request: NextRequest) => {
       { status: 500 }
     );
   }
-});
+};
 
-export const OPTIONS = withCors(() =>
-  Promise.resolve(new NextResponse(null, { status: 204 }))
-); // for CORS preflight
+export const OPTIONS = () =>
+  new NextResponse(null, { status: 204 }); // for CORS preflight

@@ -78,7 +78,7 @@ const getAssignmentSummary = async (request: NextRequest) => {
           },
         },
         // Get bus details from our unified schema
-  Bus: {
+        Bus: {
           select: {
             plate_number: true,
             bus_type: true,
@@ -174,9 +174,7 @@ const patchHandler = async (request: NextRequest) => {
 
     const results = await Promise.allSettled(
       updates.map((item) => {
-        const updateData: Record<string, any> = {
-          UpdatedBy: user?.employeeId || null,
-        };
+        const updateData: Record<string, any> = {};
 
         if ('IsRevenueRecorded' in item && typeof item.IsRevenueRecorded === 'boolean') {
           updateData.IsRevenueRecorded = item.IsRevenueRecorded;
@@ -186,8 +184,7 @@ const patchHandler = async (request: NextRequest) => {
           updateData.IsExpenseRecorded = item.IsExpenseRecorded;
         }
 
-        if (Object.keys(updateData).length <= 1) {
-          // Only UpdatedBy is included, skip this update.
+        if (Object.keys(updateData).length === 0) {
           return Promise.reject(new Error('No update fields provided'));
         }
 
@@ -198,7 +195,6 @@ const patchHandler = async (request: NextRequest) => {
             BusTripID: true,
             IsRevenueRecorded: true,
             IsExpenseRecorded: true,
-            UpdatedBy: true,
           },
         });
       })

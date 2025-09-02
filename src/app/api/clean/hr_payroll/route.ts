@@ -48,18 +48,26 @@ export const GET = withCors(async (request: NextRequest) => {
           },
         },
         benefits: {
-          where: { isActive: true },
+          where: {
+            isActive: true,
+          },
           select: {
             value: true,
             frequency: true,
             effectiveDate: true,
             endDate: true,
             isActive: true,
-            benefitType: { select: { name: true } },
+            benefitType: {
+              select: {
+                name: true,
+              },
+            },
           },
         },
         deductions: {
-          where: { isActive: true },
+          where: {
+            isActive: true,
+          },
           select: {
             type: true,
             value: true,
@@ -67,7 +75,11 @@ export const GET = withCors(async (request: NextRequest) => {
             effectiveDate: true,
             endDate: true,
             isActive: true,
-            deductionType: { select: { name: true } },
+            deductionType: {
+              select: {
+                name: true,
+              },
+            },
           },
         },
       },
