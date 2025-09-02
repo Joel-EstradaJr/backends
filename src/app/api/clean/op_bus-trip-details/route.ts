@@ -78,7 +78,7 @@ const getAssignmentSummary = async (request: NextRequest) => {
           },
         },
         // Get bus details from our unified schema
-        Bus: {
+  Bus: {
           select: {
             plate_number: true,
             bus_type: true,
