@@ -432,7 +432,7 @@ async function main() {
 				DispatchedAt: dispatchedAt,
 				TripExpense: dec(1000 + i * 50 + j * 20),
 				Sales: dec(3000 + i * 100 + j * 50),
-			Payment_Method: j % 2 === 0 ? PaymentMethod.Cash : PaymentMethod.Mixed,
+			Payment_Method: j % 2 === 0 ? PaymentMethod.Cash : PaymentMethod.Reimbursement,
 				IsExpenseRecorded: j % 2 === 0, // alternate
 				IsRevenueRecorded: j % 3 === 0, // every third recorded
 			},
