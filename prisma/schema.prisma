@@ -791,7 +791,5 @@ enum BusOperationStatus {
 
 enum PaymentMethod {
   Cash
-  Card
-  Digital
-  Mixed
+  Reimbursement
 }
