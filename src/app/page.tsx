@@ -1,8 +1,9 @@
 export default function Home() {
+  console.log("DATABASE_URL:", process.env.DATABASE_URL); // ✅ works at runtime on server
+
   return (
     <div style={{ padding: '2rem', fontFamily: 'Arial, sans-serif' }}>
       <h1>Dummy Backend API</h1>
-      <p>Database URL: {process.env.NEXT_PUBLIC_DATABASE_URL}</p>
       <p>Your API is running successfully!</p>
       <div>
         <h2>Available Endpoints:</h2>
