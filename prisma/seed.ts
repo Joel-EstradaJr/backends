@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, PaymentMethod } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -8,36 +8,40 @@ const randPick = <T>(arr: readonly T[]) => arr[Math.floor(Math.random() * arr.le
 const addDays = (d: Date, days: number) => new Date(d.getTime() + days * 24 * 60 * 60 * 1000);
 
 async function main() {
-	// 1) Clean existing data (in dependency order to satisfy FK constraints)
-	await prisma.$transaction([
-	prisma.ticketBusTrip.deleteMany(), // not seeded, safe
-	prisma.busTrip.deleteMany(),
-	prisma.fixed.deleteMany(),
-	prisma.percentage.deleteMany(),
-	prisma.quota_Policy.deleteMany(),
-	prisma.regularBusAssignment.deleteMany(),
-	prisma.busAssignment.deleteMany(),
-	prisma.routeStop.deleteMany(),
-	prisma.route.deleteMany(),
-	prisma.stop.deleteMany(),
-	prisma.bus.deleteMany(),
-	prisma.benefit.deleteMany(),
-	prisma.deduction.deleteMany(),
-	prisma.attendance.deleteMany(),
-	prisma.benefitType.deleteMany(),
-	prisma.deductionType.deleteMany(),
+		// 1) Clean existing data (in dependency order to satisfy FK constraints)
+		await prisma.$transaction([
+			// Operations and related junctions first
+			prisma.ticketBusTrip.deleteMany(),
+			prisma.busTrip.deleteMany(),
+			prisma.fixed.deleteMany(),
+			prisma.percentage.deleteMany(),
+			prisma.quota_Policy.deleteMany(),
+			prisma.regularBusAssignment.deleteMany(),
+			prisma.busAssignment.deleteMany(),
+			prisma.routeStop.deleteMany(),
+			prisma.route.deleteMany(),
+			prisma.stop.deleteMany(),
 
-	// 👇 delete users before employees (fixes User_employeeId_fkey)
-	prisma.user.deleteMany(),
-	prisma.employee.deleteMany(),
-	prisma.position.deleteMany(),
-	prisma.department.deleteMany(),
+			// Inventory/Bus depend on User via created_by, so delete them before Users
+			prisma.bus.deleteMany(),
+			prisma.inventoryItem.deleteMany(),
+			prisma.category.deleteMany(),
 
-	prisma.inventoryItem.deleteMany(),
-	prisma.category.deleteMany(),
-	prisma.role.deleteMany(),
-	prisma.securityQuestion.deleteMany(),
-	]);
+			// HR data
+			prisma.benefit.deleteMany(),
+			prisma.deduction.deleteMany(),
+			prisma.attendance.deleteMany(),
+			prisma.benefitType.deleteMany(),
+			prisma.deductionType.deleteMany(),
+
+			// Auth and core HR
+			prisma.user.deleteMany(),
+			prisma.employee.deleteMany(),
+			prisma.position.deleteMany(),
+			prisma.department.deleteMany(),
+			prisma.role.deleteMany(),
+			prisma.securityQuestion.deleteMany(),
+		]);
 
 
 	// 2) HR Core: Departments, Positions, Employees (+ attendance, benefits, deductions)
@@ -428,7 +432,7 @@ async function main() {
 				DispatchedAt: dispatchedAt,
 				TripExpense: dec(1000 + i * 50 + j * 20),
 				Sales: dec(3000 + i * 100 + j * 50),
-				Payment_Method: j % 2 === 0 ? "Cash" : "Reimbursement",
+			Payment_Method: j % 2 === 0 ? PaymentMethod.Cash : PaymentMethod.Mixed,
 				IsExpenseRecorded: j % 2 === 0, // alternate
 				IsRevenueRecorded: j % 3 === 0, // every third recorded
 			},
