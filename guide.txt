@@ -5,3 +5,13 @@ npx prisma db push (sync with current db)
 
 npx prisma migrate reset
 npx prisma db push --force-reset
+
+FTMS Items PATCH guidance
+-------------------------
+- Prefer sending item-level pairs: `{ items: [{ receipt_id, item_id }] }`.
+- This marks only the exact items that succeeded on your side.
+- If you cannot include `receipt_id`, send `{ transaction_items: [{ transaction_id, item_id }] }`.
+- The FTMS endpoint will resolve `receipt_id` internally and update the same items.
+- Legacy `{ transaction_ids: string[] }` remains supported but is discouraged.
+
+See `examples/external_ftms_items_route.ts` for a minimal client snippet.

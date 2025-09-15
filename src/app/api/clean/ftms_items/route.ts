@@ -93,8 +93,8 @@ export async function GET(request: Request) {
 
 export async function PATCH(request: Request) {
   try {
-    const body = await request.json();
-    const { items, transaction_ids } = body ?? {};
+  const body = await request.json();
+  const { items, transaction_items, transaction_ids } = body ?? {};
     const db = prisma as any;
 
     // Prefer item-level updates when provided
@@ -166,12 +166,83 @@ export async function PATCH(request: Request) {
       });
     }
 
+    // Support transaction_items fallback: [{ transaction_id, item_id }]
+    if (Array.isArray(transaction_items)) {
+      if (transaction_items.length === 0) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'transaction_items array cannot be empty' }),
+          { status: 400, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+
+      const invalid = transaction_items.find(
+        (x: any) =>
+          !x || typeof x !== 'object' || typeof x.transaction_id !== 'string' || typeof x.item_id !== 'string',
+      );
+      if (invalid) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'Each transaction_item must have string transaction_id and item_id' }),
+          { status: 400, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+
+      const key = (t: string, i: string) => `${t}::${i}`;
+      const uniqueMap = new Map<string, { transaction_id: string; item_id: string }>();
+      for (const it of transaction_items as Array<{ transaction_id: string; item_id: string }>) {
+        uniqueMap.set(key(it.transaction_id, it.item_id), { transaction_id: it.transaction_id, item_id: it.item_id });
+      }
+      const uniquePairs = Array.from(uniqueMap.values());
+
+      const txIdSet = Array.from(new Set(uniquePairs.map((p) => p.transaction_id)));
+      const txRows = await db.itemTransaction.findMany({
+        where: {
+          transaction_id: { in: txIdSet },
+          isdeleted: false,
+          receipt: { isdeleted: false },
+        },
+        select: { transaction_id: true, item_id: true, receipt_id: true },
+      });
+
+      const txMap = new Map<string, { receipt_id: string | null }>();
+      for (const row of txRows as any[]) {
+        txMap.set(key(row.transaction_id, row.item_id), { receipt_id: row.receipt_id });
+      }
+
+      const unresolved = uniquePairs.filter((p) => !txMap.has(key(p.transaction_id, p.item_id)) || !txMap.get(key(p.transaction_id, p.item_id))!.receipt_id);
+      if (unresolved.length > 0) {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: 'Some transaction_items could not be resolved to receipt items',
+            unresolved,
+          }),
+          { status: 404, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+
+      const updateOps = uniquePairs.map((p) => {
+        const recId = txMap.get(key(p.transaction_id, p.item_id))!.receipt_id as string;
+        return db.receiptItem.update({
+          where: { receipt_id_item_id: { receipt_id: recId, item_id: p.item_id } },
+          data: { isInventoryProcessed: true },
+        });
+      });
+
+      await prisma.$transaction(updateOps);
+
+      return Response.json({
+        success: true,
+        message: `Marked ${uniquePairs.length} item(s) as inventory processed via transaction_items`,
+        processed_items: uniquePairs,
+      });
+    }
+
     // Backward compatibility: allow transaction_ids updates (group-level)
     if (!Array.isArray(transaction_ids) || transaction_ids.length === 0) {
       return new Response(
         JSON.stringify({
           success: false,
-          error: 'Provide items array for item-level updates or a non-empty transaction_ids array',
+          error: 'Provide items array for item-level updates, transaction_items pairs, or a non-empty transaction_ids array',
         }),
         { status: 400, headers: { 'Content-Type': 'application/json' } },
       );
