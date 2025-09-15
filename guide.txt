@@ -1,0 +1,7 @@
+npm install
+npm migrate dev --name initial
+npm run db:seed
+npx prisma db push (sync with current db)
+
+npx prisma migrate reset
+npx prisma db push --force-reset

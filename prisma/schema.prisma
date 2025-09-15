@@ -792,4 +792,5 @@ enum BusOperationStatus {
 enum PaymentMethod {
   Cash
   Reimbursement
+  RenterDamage
 }

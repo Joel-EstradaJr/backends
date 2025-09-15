@@ -47,6 +47,7 @@ async function main() {
 	// 2) HR Core: Departments, Positions, Employees (+ attendance, benefits, deductions)
 	const departmentNames = [
 		"Operations",
+		"Inventory",
 		"Human Resources",
 		"Finance",
 		"Maintenance",
@@ -74,6 +75,8 @@ async function main() {
 		{ positionName: "IT Support", dept: "IT" },
 		{ positionName: "Logistics Coordinator", dept: "Logistics" },
 		{ positionName: "Safety Officer", dept: "Safety" },
+		{ positionName: "Inventory Specialist", dept: "Inventory" },
+		{ positionName: "Warehouse Clerk", dept: "Inventory" },
 	];
 		const positions = [] as { id: number; positionName: string }[];
 	for (const spec of positionSpecs) {
@@ -86,77 +89,131 @@ async function main() {
 
 	// Create 10 employees (5 drivers, 5 conductors) for endpoints
 	const firstNames = [
-		"Juan",
-		"Maria",
-		"Jose",
-		"Ana",
-		"Pedro",
-		"Liza",
-		"Carlos",
-		"Rosa",
-		"Miguel",
-		"Elena",
-		"Mario",
-		"Carmen",
+		"Joel",
+		"Nerie Ann",
+		"Carl Aldrey",
+		"Christelle Ann",
+		"Brian",
+		"Kristine Mae",
+		"Yuan Exequiel",
+		"Bette Anjanelle",
+		"John Mark",
+		"Lei Ann",
+		"Richard Jason",
+		"Ashley Gene",
+		"Crystalyn",
+		"Clarisse Irish",
+		"Rhian Jolius",
+		"Julia",
+		"Mae Loraine",
+		"Rocket",
+		"Bruno",
+		"Depunggal",
 	];
-	const lastNames = [
-		"Santos",
-		"Reyes",
+
+	const middleNames = [
+		"Robes",
+		"Sarabillo",
+		"Anderson",
+		"Taylors",
+		"Senora",
+		"Castillo",
+		"Jefferson",
+		"Benjamin",
 		"Cruz",
-		"Bautista",
-		"Garcia",
-		"Torres",
-		"Navarro",
+		"Selecta",
+		"Montalban",
+		"Louise",
 		"Ramos",
-		"Mendoza",
-		"Villanueva",
+		"",
+		"",
+		"Evangelista",
+		"",
+		"D.",
+		"",
+		"Ka",
+	];
+
+	const lastNames = [
+		"Estrada Jr.",
+		"Bravo-Estrada",
+		"Bergado",
+		"Dacapias",
+		"Caube",
+		"Cleofas",
+		"Evangelista",
+		"Cabarles",
+		"Garces",
+		"Cornetto",
 		"Aquino",
-		"Dela Cruz",
+		"Equipelag",
+		"Danga",
+		"Jotojot-Paller",
+		"Baldomar",
+		"Ababa",
+		"Dela Torre",
+		"Golden Retriever",
+		"Mars",
+		"Yawa",
 	];
 
 		const employees: Array<Awaited<ReturnType<typeof prisma.employee.create>>> = [];
 	const today = new Date();
-	for (let i = 0; i < 10; i++) {
-		const isDriver = i < 5; // first 5 as drivers
-		const isConductor = i >= 5 && i < 10; // next 5 as conductors
-		const pos = isDriver
-			? positions.find((p) => p.positionName === "Driver")!
-			: isConductor
-			? positions.find((p) => p.positionName === "Conductor")!
-			: randPick(positions);
+	// We want 20 employees in 4 groups of 5 each:
+	// - 5 Drivers (Operations)
+	// - 5 Conductors (Operations)
+	// - 5 Finance (Payroll Officer/Accountant)
+	// - 5 Inventory (Inventory Specialist/Warehouse Clerk)
+	const driverPos = positions.find((p) => p.positionName === "Driver");
+	const conductorPos = positions.find((p) => p.positionName === "Conductor");
+	const financePositions = positions.filter((p) => ["Payroll Officer", "Accountant"].includes(p.positionName));
+	const inventoryPositions = positions.filter((p) => ["Inventory Specialist", "Warehouse Clerk"].includes(p.positionName));
 
-				const e = await prisma.employee.create({
-					data: ({
-					employeeNumber: `EMP${String(i + 1).padStart(4, "0")}`,
-					firstName: firstNames[i % firstNames.length],
-					lastName: lastNames[i % lastNames.length],
-					middleName: i % 3 === 0 ? "M" : null,
-					suffix: i % 7 === 0 ? "Jr." : null,
-					birthdate: addDays(today, -(365 * (25 + (i % 15)))),
-					hiredate: addDays(today, -365 - i * 10),
-					terminationDate: i % 11 === 0 ? addDays(today, -30) : null,
-					terminationReason: i % 11 === 0 ? "End of contract" : null,
-					basicRate: dec(500 + i * 25),
-					employeeStatus: i % 11 === 0 ? "inactive" : "active",
-					employeeType: i % 5 === 0 ? "contract" : "regular",
-					employeeClassification: i % 4 === 0 ? "Rank-and-File" : "Supervisory",
-					phone: `09${Math.floor(100000000 + Math.random() * 899999999)}`,
-					email: `emp${i + 1}@example.com`,
-					emergencyContactName: i % 2 === 0 ? "EC Name" : null,
-					emergencyContactNo: i % 2 === 0 ? "09123456789" : null,
-					barangay: "Barangay 1",
-					streetAddress: `Street ${i + 1}`,
-					city: "City",
-					province: "Province",
-					zipCode: "1234",
-					country: "PH",
-					positionId: pos.id,
-					expireDate: i % 6 === 0 ? addDays(today, 365) : null,
-					licenseNo: i % 3 === 0 ? `LIC-${1000 + i}` : null,
-					licenseType: i % 3 === 0 ? "Driver" : null,
-					restrictionCodes: i % 3 === 0 ? ["1", "2"] : [],
-					}) as any,
-			});
+	for (let i = 0; i < 20; i++) {
+		let pos;
+		if (i < 5) pos = driverPos!; // 0-4 Drivers
+		else if (i < 10) pos = conductorPos!; // 5-9 Conductors
+		else if (i < 15) pos = randPick(financePositions); // 10-14 Finance
+		else pos = randPick(inventoryPositions); // 15-19 Inventory
+
+		const e = await prisma.employee.create({
+			data: ({
+					employeeNumber: `EMP-${String(i + 1).padStart(4, "0")}`,
+			firstName: firstNames[i % firstNames.length],
+			lastName: lastNames[i % lastNames.length],
+			middleName: middleNames[i % middleNames.length],
+			suffix: i % 7 === 0 ? "Jr." : null,
+			birthdate: addDays(today, -(365 * (25 + (i % 15)))),
+			hiredate: addDays(today, -365 - i * 10),
+			terminationDate: i % 19 === 0 ? addDays(today, -30) : null,
+			terminationReason: i % 19 === 0 ? "End of contract" : null,
+			basicRate: dec(500 + i * 25),
+			employeeStatus: i % 19 === 0 ? "inactive" : "active",
+			employeeType: i % 5 === 0 ? "contract" : "regular",
+			employeeClassification: i % 4 === 0 ? "Rank-and-File" : "Supervisory",
+			phone: (() => {
+				const rest = Math.floor(100000000 + Math.random() * 900000000)
+					.toString()
+					.padStart(9, "0");
+				const digits = `09${rest}`; // total 11 digits
+				return `${digits.slice(0, 4)}-${digits.slice(4, 7)}-${digits.slice(7, 11)}`;
+			})(),
+			email: `emp${i + 1}@example.com`,
+			emergencyContactName: i % 2 === 0 ? "EC Name" : null,
+			emergencyContactNo: i % 2 === 0 ? "09123456789" : null,
+			barangay: "Barangay 1",
+			streetAddress: `Street ${i + 1}`,
+			city: "City",
+			province: "Province",
+			zipCode: "1234",
+			country: "PH",
+			positionId: pos.id,
+			expireDate: i % 6 === 0 ? addDays(today, 365) : null,
+			licenseNo: i % 3 === 0 ? `LIC-${1000 + i}` : null,
+			licenseType: i % 3 === 0 ? "Driver" : null,
+			restrictionCodes: i % 3 === 0 ? ["1", "2"] : [],
+		}) as any,
+		});
 		employees.push(e);
 	}
 

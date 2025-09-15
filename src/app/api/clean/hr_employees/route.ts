@@ -9,13 +9,16 @@ export const GET = async (request: NextRequest) => {
         firstName: true,
         middleName: true,
         lastName: true,
+        phone: true,
         suffix: true,
-    position: {
+        positionId: true,
+        position: {
           select: {
             positionName: true,
             department: {
               select: {
                 departmentName: true,
+                id: true,
               },
             },
           },
@@ -35,10 +38,14 @@ export const GET = async (request: NextRequest) => {
         .join(" ");
 
       return {
-        employee_id: emp.employeeNumber,
-        employee_name: fullName,
-        job: emp.position?.positionName || null,
-        department: emp.position?.department?.departmentName || null,
+        employeeNumber: emp.employeeNumber,
+        firstName: emp.firstName,
+        middleName: emp.middleName ?? "",
+        lastName: emp.lastName,
+        phone: emp.phone,
+        position: emp.position?.positionName || "",
+        departmentId: emp.position?.department?.id ?? 0,
+        department: emp.position?.department?.departmentName || "",
       };
     });
 
