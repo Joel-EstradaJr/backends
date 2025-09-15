@@ -11,6 +11,7 @@ export default function Home() {
           <li><code>GET /api/clean/hr_employees</code> - Employee data</li>
           <li><code>GET /api/clean/hr_payroll</code> - Payroll data</li>
           <li><code>GET /api/clean/op_bus-trip-details</code> - Bus trip details</li>
+          <li><code>GET /api/clean/ftms_items</code> - Receipt Items </li>
         </ul>
       </div>
     </div>
