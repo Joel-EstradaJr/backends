@@ -418,6 +418,7 @@ model Category {
   date_created   DateTime        @default(now())
   isdeleted      Boolean         @default(false)
   inventoryItems InventoryItem[]
+  items          Item[]
 
   @@map("categories")
 }
@@ -793,4 +794,71 @@ enum PaymentMethod {
   Cash
   Reimbursement
   RenterDamage
+}
+
+// ---------------- FTMS (Items, Receipts, Transactions) ----------------
+
+model Unit {
+  id        String  @id @db.VarChar(20)
+  name      String  @db.VarChar(100)
+  isdeleted Boolean @default(false)
+
+  items     Item[]
+
+  @@map("units")
+}
+
+model Item {
+  item_id     String   @id @db.VarChar(20)
+  item_name   String   @db.VarChar(100)
+  unit_id     String
+  category_id String
+  isdeleted   Boolean  @default(false)
+
+  unit        Unit     @relation(fields: [unit_id], references: [id])
+  category    Category @relation(fields: [category_id], references: [category_id])
+  receiptItems ReceiptItem[]
+  transactions ItemTransaction[]
+
+  @@map("items")
+}
+
+model Receipt {
+  receipt_id String  @id @db.VarChar(20)
+  isdeleted  Boolean @default(false)
+
+  items       ReceiptItem[]
+  transactions ItemTransaction[]
+
+  @@map("receipts")
+}
+
+model ReceiptItem {
+  id                    String  @id @default(cuid())
+  receipt_id            String
+  item_id               String
+  isInventoryProcessed  Boolean @default(false)
+  isdeleted             Boolean @default(false)
+
+  receipt  Receipt @relation(fields: [receipt_id], references: [receipt_id])
+  item     Item    @relation(fields: [item_id], references: [item_id])
+
+  @@unique([receipt_id, item_id])
+  @@map("receipt_items")
+}
+
+model ItemTransaction {
+  transaction_id   String   @db.VarChar(30)
+  transaction_date DateTime
+  item_id          String
+  receipt_id       String?
+  quantity         Decimal
+  isdeleted        Boolean  @default(false)
+
+  item     Item    @relation(fields: [item_id], references: [item_id])
+  receipt  Receipt? @relation(fields: [receipt_id], references: [receipt_id])
+
+  @@id([transaction_id, item_id])
+  @@index([transaction_date])
+  @@map("item_transactions")
 }

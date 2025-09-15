@@ -8,6 +8,7 @@ const randPick = <T>(arr: readonly T[]) => arr[Math.floor(Math.random() * arr.le
 const addDays = (d: Date, days: number) => new Date(d.getTime() + days * 24 * 60 * 60 * 1000);
 
 async function main() {
+		const db = prisma as any; // alias for newly added models before prisma generate
 		// 1) Clean existing data (in dependency order to satisfy FK constraints)
 		await prisma.$transaction([
 			// Operations and related junctions first
@@ -21,6 +22,13 @@ async function main() {
 			prisma.routeStop.deleteMany(),
 			prisma.route.deleteMany(),
 			prisma.stop.deleteMany(),
+
+			// FTMS data
+			db.itemTransaction.deleteMany(),
+			db.receiptItem.deleteMany(),
+			db.receipt.deleteMany(),
+			db.item.deleteMany(),
+			db.unit.deleteMany(),
 
 			// Inventory/Bus depend on User via created_by, so delete them before Users
 			prisma.bus.deleteMany(),
@@ -334,6 +342,136 @@ async function main() {
 		},
 	});
 
+	// 3b) FTMS Units, Items, Receipts, Transactions
+	const unitUpserts = [
+		{ id: "UNIT", name: "Unit" },
+		{ id: "PCS", name: "pcs" },
+		{ id: "BOX", name: "Box" },
+		{ id: "LITER", name: "liter" },
+		{ id: "KG", name: "kg" },
+		{ id: "SET", name: "set" },
+		{ id: "PAIRS", name: "pairs" },
+		{ id: "ROLLS", name: "rolls" },
+		{ id: "SETS", name: "sets" },
+	];
+	for (const u of unitUpserts) {
+		await db.unit.upsert({ where: { id: u.id }, update: { name: u.name, isdeleted: false }, create: u });
+	}
+	const units = await db.unit.findMany();
+	const unitByName = Object.fromEntries(units.map((u: any) => [u.name.toLowerCase(), u.id]));
+
+	// Add another category for FTMS items
+	const catInv = await prisma.category.upsert({
+		where: { category_id: "CAT002" },
+		update: {},
+		create: { category_id: "CAT002", category_name: "Inventory" },
+	});
+
+	// Define 50 items with specific names and units
+	const itemDefs: Array<{ id: string; name: string; unit: string }> = [
+		{ id: "ITEM-0001", name: "Diesel Fuel", unit: "liter" },
+		{ id: "ITEM-0002", name: "Engine Oil", unit: "liter" },
+		{ id: "ITEM-0003", name: "Coolant", unit: "liter" },
+		{ id: "ITEM-0004", name: "Grease", unit: "kg" },
+		{ id: "ITEM-0005", name: "Brake Fluid", unit: "liter" },
+		{ id: "ITEM-0006", name: "Bus Tires", unit: "pcs" },
+		{ id: "ITEM-0007", name: "Air Filters", unit: "pcs" },
+		{ id: "ITEM-0008", name: "Fuel Filters", unit: "pcs" },
+		{ id: "ITEM-0009", name: "Brake Pads", unit: "set" },
+		{ id: "ITEM-0010", name: "Headlight Bulbs", unit: "pcs" },
+		{ id: "ITEM-0011", name: "Windshield Wipers", unit: "pcs" },
+		{ id: "ITEM-0012", name: "Side Mirrors", unit: "pcs" },
+		{ id: "ITEM-0013", name: "Seat Covers", unit: "pcs" },
+		{ id: "ITEM-0014", name: "Floor Mats", unit: "pcs" },
+		{ id: "ITEM-0015", name: "Window Glass Cleaner", unit: "liter" },
+		{ id: "ITEM-0016", name: "Uniform Shirts", unit: "pcs" },
+		{ id: "ITEM-0017", name: "Uniform Pants", unit: "pcs" },
+		{ id: "ITEM-0018", name: "Reflective Vests", unit: "pcs" },
+		{ id: "ITEM-0019", name: "Safety Helmets", unit: "pcs" },
+		{ id: "ITEM-0020", name: "Protective Gloves", unit: "pairs" },
+		{ id: "ITEM-0021", name: "Transmission Fluid", unit: "liter" },
+		{ id: "ITEM-0022", name: "Hydraulic Oil", unit: "liter" },
+		{ id: "ITEM-0023", name: "Power Steering Fluid", unit: "liter" },
+		{ id: "ITEM-0024", name: "Spark Plugs", unit: "pcs" },
+		{ id: "ITEM-0025", name: "Timing Belts", unit: "pcs" },
+		{ id: "ITEM-0026", name: "Engine Belts", unit: "pcs" },
+		{ id: "ITEM-0027", name: "Radiators", unit: "pcs" },
+		{ id: "ITEM-0028", name: "Alternators", unit: "pcs" },
+		{ id: "ITEM-0029", name: "Batteries", unit: "pcs" },
+		{ id: "ITEM-0030", name: "Starter Motors", unit: "pcs" },
+		{ id: "ITEM-0031", name: "First Aid Kits", unit: "pcs" },
+		{ id: "ITEM-0032", name: "Fire Extinguishers", unit: "pcs" },
+		{ id: "ITEM-0033", name: "Emergency Triangles", unit: "pcs" },
+		{ id: "ITEM-0034", name: "Reflective Stickers", unit: "rolls" },
+		{ id: "ITEM-0035", name: "Bus Tool Kits", unit: "sets" },
+		{ id: "ITEM-0036", name: "Cleaning Detergent", unit: "liter" },
+		{ id: "ITEM-0037", name: "Mops", unit: "pcs" },
+		{ id: "ITEM-0038", name: "Buckets", unit: "pcs" },
+		{ id: "ITEM-0039", name: "Brooms", unit: "pcs" },
+		{ id: "ITEM-0040", name: "Disinfectant Spray", unit: "liter" },
+		{ id: "ITEM-0041", name: "Bus Seats", unit: "pcs" },
+		{ id: "ITEM-0042", name: "Seat Belts", unit: "pcs" },
+		{ id: "ITEM-0043", name: "Overhead Fans", unit: "pcs" },
+		{ id: "ITEM-0044", name: "AC Filters", unit: "pcs" },
+		{ id: "ITEM-0045", name: "Curtains", unit: "pcs" },
+		{ id: "ITEM-0046", name: "GPS Devices", unit: "pcs" },
+		{ id: "ITEM-0047", name: "Two-Way Radios", unit: "pcs" },
+		{ id: "ITEM-0048", name: "CCTV Cameras", unit: "pcs" },
+		{ id: "ITEM-0049", name: "Ticket Printers", unit: "pcs" },
+		{ id: "ITEM-0050", name: "Fare Cards", unit: "pcs" },
+	];
+
+	const ftmsItems = [] as any[];
+	for (const def of itemDefs) {
+		const unitId = unitByName[def.unit] ?? units[0].id;
+		ftmsItems.push(
+			await db.item.upsert({
+				where: { item_id: def.id },
+				update: { item_name: def.name, unit_id: unitId, category_id: catInv.category_id, isdeleted: false },
+				create: { item_id: def.id, item_name: def.name, unit_id: unitId, category_id: catInv.category_id },
+			}),
+		);
+	}
+
+	const receiptA = await db.receipt.upsert({ where: { receipt_id: "RCPT-20250914" }, update: { isdeleted: false }, create: { receipt_id: "RCPT-20250914" } });
+
+	// Create receipt items for all seeded items (unprocessed)
+	for (const it of ftmsItems) {
+		await db.receiptItem.upsert({
+			where: { receipt_id_item_id: { receipt_id: receiptA.receipt_id, item_id: it.item_id } },
+			update: { isInventoryProcessed: false, isdeleted: false },
+			create: { receipt_id: receiptA.receipt_id, item_id: it.item_id, isInventoryProcessed: false },
+		});
+	}
+
+	// Grouped transactions ITX-1001..ITX-1010
+	const txnDefs: Array<{ id: string; date: string; itemIdx: number[]; qty: number[] }> = [
+		{ id: "ITX-1001", date: "2025-09-14T08:15:00.000Z", itemIdx: [0,1,2,3,4], qty: [1500,80,40,20,25] },
+		{ id: "ITX-1002", date: "2025-09-14T09:00:00.000Z", itemIdx: [5,6,7,8,9], qty: [10,15,20,8,30] },
+		{ id: "ITX-1003", date: "2025-09-14T09:45:00.000Z", itemIdx: [10,11,12,13,14], qty: [25,12,40,35,50] },
+		{ id: "ITX-1004", date: "2025-09-14T10:20:00.000Z", itemIdx: [15,16,17,18,19], qty: [60,60,40,25,50] },
+		{ id: "ITX-1005", date: "2025-09-14T11:00:00.000Z", itemIdx: [20,21,22,23,24], qty: [60,70,30,100,10] },
+		{ id: "ITX-1006", date: "2025-09-14T11:30:00.000Z", itemIdx: [25,26,27,28,29], qty: [15,5,6,12,4] },
+		{ id: "ITX-1007", date: "2025-09-14T12:00:00.000Z", itemIdx: [30,31,32,33,34], qty: [20,15,30,10,12] },
+		{ id: "ITX-1008", date: "2025-09-14T12:45:00.000Z", itemIdx: [35,36,37,38,39], qty: [100,20,15,25,60] },
+		{ id: "ITX-1009", date: "2025-09-14T13:30:00.000Z", itemIdx: [40,41,42,43,44], qty: [12,30,8,20,40] },
+		{ id: "ITX-1010", date: "2025-09-14T14:15:00.000Z", itemIdx: [45,46,47,48,49], qty: [6,10,8,5,500] },
+	];
+	for (const t of txnDefs) {
+		for (let k = 0; k < t.itemIdx.length; k++) {
+			const idx = t.itemIdx[k];
+			await db.itemTransaction.create({
+				data: {
+					transaction_id: t.id,
+					transaction_date: new Date(t.date),
+					item_id: ftmsItems[idx].item_id,
+					receipt_id: receiptA.receipt_id,
+					quantity: dec(t.qty[k]),
+				},
+			});
+		}
+	}
+
 	// 4) Operations: Stops, Routes, Buses, Assignments, Quotas, Trips
 	// Stops (20)
 	const stops = [] as { StopID: string }[];
@@ -496,8 +634,17 @@ async function main() {
 		});
 	}
 
-	console.log("Seeding completed:");
-	console.log({
+		// Counts for FTMS entities
+		const ftmsCounts = await Promise.all([
+			db.unit.count(),
+			db.item.count(),
+			db.receipt.count(),
+			db.receiptItem.count(),
+			db.itemTransaction.count(),
+		]);
+
+		console.log("Seeding completed:");
+		console.log({
 		departments: departmentNames.length,
 		positions: positionSpecs.length,
 		employees: employees.length,
@@ -509,6 +656,11 @@ async function main() {
 		busAssignments: busAssignments.length,
 		regularAssignments: regularAssignments.length,
 		quotaPolicies: quotaPolicies.length,
+			ftms_units: ftmsCounts[0],
+			ftms_items: ftmsCounts[1],
+			ftms_receipts: ftmsCounts[2],
+			ftms_receiptItems: ftmsCounts[3],
+			ftms_itemTransactions: ftmsCounts[4],
 	});
 }
 
