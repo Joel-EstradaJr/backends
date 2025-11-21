@@ -57,14 +57,7 @@ async function main() {
 		"Operations",
 		"Inventory",
 		"Human Resources",
-		"Finance",
-		"Maintenance",
-		"IT",
-		"Logistics",
-		"Safety",
-		"Customer Service",
-		"Procurement",
-		"Compliance",
+		"Finance"
 	];
 		const departments = [] as { id: number; departmentName: string }[];
 	for (const departmentName of departmentNames) {
@@ -76,13 +69,9 @@ async function main() {
 		{ positionName: "Driver", dept: "Operations" },
 		{ positionName: "Conductor", dept: "Operations" },
 		{ positionName: "Dispatcher", dept: "Operations" },
-		{ positionName: "Mechanic", dept: "Maintenance" },
 		{ positionName: "HR Specialist", dept: "Human Resources" },
 		{ positionName: "Payroll Officer", dept: "Finance" },
 		{ positionName: "Accountant", dept: "Finance" },
-		{ positionName: "IT Support", dept: "IT" },
-		{ positionName: "Logistics Coordinator", dept: "Logistics" },
-		{ positionName: "Safety Officer", dept: "Safety" },
 		{ positionName: "Inventory Specialist", dept: "Inventory" },
 		{ positionName: "Warehouse Clerk", dept: "Inventory" },
 	];
@@ -95,7 +84,7 @@ async function main() {
 		positions.push(p);
 	}
 
-	// Create 10 employees (5 drivers, 5 conductors) for endpoints
+	// Create 20 employees for endpoints
 	const firstNames = [
 		"Joel",
 		"Nerie Ann",
@@ -167,22 +156,25 @@ async function main() {
 
 		const employees: Array<Awaited<ReturnType<typeof prisma.employee.create>>> = [];
 	const today = new Date();
-	// We want 20 employees in 4 groups of 5 each:
-	// - 5 Drivers (Operations)
-	// - 5 Conductors (Operations)
-	// - 5 Finance (Payroll Officer/Accountant)
-	// - 5 Inventory (Inventory Specialist/Warehouse Clerk)
+	// We want 20 employees in 5 groups of 4 each:
+	// - 4 Drivers (Operations)
+	// - 4 Conductors (Operations)
+	// - 4 Finance (Payroll Officer/Accountant)
+	// - 4 Inventory (Inventory Specialist/Warehouse Clerk)
+	// - 4 HR (HR Specialist)
 	const driverPos = positions.find((p) => p.positionName === "Driver");
 	const conductorPos = positions.find((p) => p.positionName === "Conductor");
 	const financePositions = positions.filter((p) => ["Payroll Officer", "Accountant"].includes(p.positionName));
 	const inventoryPositions = positions.filter((p) => ["Inventory Specialist", "Warehouse Clerk"].includes(p.positionName));
+	const hrPos = positions.find((p) => p.positionName === "HR Specialist");
 
 	for (let i = 0; i < 20; i++) {
 		let pos;
-		if (i < 5) pos = driverPos!; // 0-4 Drivers
-		else if (i < 10) pos = conductorPos!; // 5-9 Conductors
-		else if (i < 15) pos = randPick(financePositions); // 10-14 Finance
-		else pos = randPick(inventoryPositions); // 15-19 Inventory
+		if (i < 4) pos = driverPos!; // 0-3 Drivers
+		else if (i < 8) pos = conductorPos!; // 4-7 Conductors
+		else if (i < 12) pos = randPick(financePositions); // 8-11 Finance
+		else if (i < 16) pos = randPick(inventoryPositions); // 12-15 Inventory
+		else pos = hrPos!; // 16-19 HR
 
 		const e = await prisma.employee.create({
 			data: ({
