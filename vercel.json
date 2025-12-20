@@ -1,7 +1,7 @@
 {
   "version": 2,
   "env": {
-    "DATABASE_URL": "postgresql://postgres:ogBSSdyPbjIIscTOwTnttPKiGtxehYer@gondola.proxy.rlwy.net:50769/railway",
+    "DATABASE_URL": "postgresql://postgres:UrcvxWVGXJMUinqWjAtPwfuuUhmZABko@switchback.proxy.rlwy.net:56016/railway",
     "JWT_SECRET": "R1eahtvhPTvPeCfkXA2hbnFRv/QQQ4isWeGF18ywYw"
   }
 }
