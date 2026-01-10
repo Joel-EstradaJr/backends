@@ -13,35 +13,35 @@ export const GET = withCors(async (request: NextRequest) => {
   // }
 
   try {
-    // Optional query param to fetch specific employee
+    // Query params
     const { searchParams } = new URL(request.url);
-    const employeeNumber = searchParams.get("employeeNumber");
+    const employeeNumber = searchParams.get("employee_number");
+    const payrollPeriodStart = searchParams.get("payroll_period_start");
+    const payrollPeriodEnd = searchParams.get("payroll_period_end");
 
-  const employees = await prisma.employee.findMany({
+    // Find employees excluding Driver and PAO positions
+    const employees = await prisma.employee.findMany({
       where: {
         ...(employeeNumber ? { employeeNumber } : {}),
+        position: {
+          positionName: {
+            notIn: ["Driver", "PAO"],
+          },
+        },
       },
       select: {
         employeeNumber: true,
-        firstName: true,
-        middleName: true,
-        lastName: true,
-        suffix: true,
-        employeeStatus: true,
-        hiredate: true,
-        terminationDate: true,
         basicRate: true,
-        position: {
-          select: {
-            positionName: true,
-            department: {
-              select: {
-                departmentName: true,
-              },
-            },
-          },
-        },
+        rateType: true,
         attendances: {
+          where: payrollPeriodStart && payrollPeriodEnd
+            ? {
+                date: {
+                  gte: new Date(payrollPeriodStart),
+                  lte: new Date(payrollPeriodEnd),
+                },
+              }
+            : {},
           select: {
             date: true,
             status: true,
@@ -59,6 +59,7 @@ export const GET = withCors(async (request: NextRequest) => {
             isActive: true,
             benefitType: {
               select: {
+                id: true,
                 name: true,
               },
             },
@@ -69,7 +70,6 @@ export const GET = withCors(async (request: NextRequest) => {
             isActive: true,
           },
           select: {
-            type: true,
             value: true,
             frequency: true,
             effectiveDate: true,
@@ -77,6 +77,7 @@ export const GET = withCors(async (request: NextRequest) => {
             isActive: true,
             deductionType: {
               select: {
+                id: true,
                 name: true,
               },
             },
@@ -85,17 +86,38 @@ export const GET = withCors(async (request: NextRequest) => {
       },
     });
 
-    // Transform the data to match expected output format - convert Decimal values to strings
+    // Transform data to match the required payload structure
     const transformedEmployees = employees.map((employee: any) => ({
-      ...employee,
-      basicRate: employee.basicRate ? employee.basicRate.toString() : null,
+      payroll_period_start: payrollPeriodStart || "",
+      payroll_period_end: payrollPeriodEnd || "",
+      employee_number: employee.employeeNumber,
+      basic_rate: employee.basicRate ? employee.basicRate.toString() : "",
+      rate_type: employee.rateType || "",
+      attendances: employee.attendances.map((att: any) => ({
+        date: att.date.toISOString().split("T")[0],
+        status: att.status,
+      })),
       benefits: employee.benefits.map((benefit: any) => ({
-        ...benefit,
         value: benefit.value.toString(),
+        frequency: benefit.frequency || "",
+        effective_date: benefit.effectiveDate.toISOString().split("T")[0],
+        end_date: benefit.endDate ? benefit.endDate.toISOString().split("T")[0] : null,
+        is_active: benefit.isActive,
+        benefit_type: {
+          id: benefit.benefitType.id.toString(),
+          name: benefit.benefitType.name,
+        },
       })),
       deductions: employee.deductions.map((deduction: any) => ({
-        ...deduction,
         value: deduction.value.toString(),
+        frequency: deduction.frequency || "",
+        effective_date: deduction.effectiveDate.toISOString().split("T")[0],
+        end_date: deduction.endDate ? deduction.endDate.toISOString().split("T")[0] : null,
+        is_active: deduction.isActive,
+        deduction_type: {
+          id: deduction.deductionType.id.toString(),
+          name: deduction.deductionType.name,
+        },
       })),
     }));
 

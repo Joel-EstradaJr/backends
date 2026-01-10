@@ -41,6 +41,7 @@ model Employee {
   terminationDate        DateTime?
   terminationReason      String?
   basicRate              Decimal?
+  rateType               String?
   employeeStatus         String               @default("active")
   employeeType           String               @default("regular")
   employeeClassification String?

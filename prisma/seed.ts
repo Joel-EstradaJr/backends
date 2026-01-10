@@ -188,6 +188,7 @@ async function main() {
 			terminationDate: i % 19 === 0 ? addDays(today, -30) : null,
 			terminationReason: i % 19 === 0 ? "End of contract" : null,
 			basicRate: dec(500 + i * 25),
+			rateType: randPick(["Monthly", "Daily", "Weekly", "Semi-Monthly"]),
 			employeeStatus: i % 19 === 0 ? "inactive" : "active",
 			employeeType: i % 5 === 0 ? "contract" : "regular",
 			employeeClassification: i % 4 === 0 ? "Rank-and-File" : "Supervisory",
@@ -233,27 +234,27 @@ async function main() {
 
 	// Benefit & Deduction Types (>=10 each)
 	const benefitTypeNames = [
+		"Service Incentive Leave",
+		"Holiday Pay",
+		"13th Month Pay",
+		"Safety",
+		"Additional",
 		"Meal Allowance",
 		"Transport Allowance",
 		"Health Insurance",
-		"Life Insurance",
-		"Housing Allowance",
-		"Phone Allowance",
-		"Education Assistance",
 		"Performance Bonus",
 		"Overtime Pay",
-		"Hazard Pay",
 	];
 	const deductionTypeNames = [
-		"Tax",
+		"Cash Advance",
+		"PAG-IBIG",
 		"SSS",
 		"PhilHealth",
-		"Pag-IBIG",
+		"Damage",
+		"Shortage",
+		"Tax",
 		"Loan Repayment",
 		"Late Penalty",
-		"Uniform Deduction",
-		"Advance Deduction",
-		"Health Deduction",
 		"Other Deduction",
 	];
 
@@ -273,7 +274,7 @@ async function main() {
 			data: {
 				employeeId: e.id,
 				value: dec(750),
-				frequency: "Monthly",
+				frequency: randPick(["Once", "Monthly", "Daily", "Weekly", "Yearly"]),
 				effectiveDate: addDays(today, -60),
 				endDate: null,
 				isActive: true,
@@ -287,7 +288,7 @@ async function main() {
 				employeeId: e.id,
 				type: dt.name,
 				value: dec(200),
-				frequency: "Monthly",
+				frequency: randPick(["Once", "Monthly", "Daily", "Weekly", "Yearly"]),
 				effectiveDate: addDays(today, -90),
 				endDate: null,
 				isActive: true,
