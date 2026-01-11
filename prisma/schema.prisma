@@ -109,48 +109,31 @@ model Attendance {
 }
 
 model Benefit {
-  id            Int         @id @default(autoincrement())
+  id            Int      @id @default(autoincrement())
   employeeId    String
+  name          String
   value         Decimal
-  frequency     String?
+  frequency     String
   effectiveDate DateTime
   endDate       DateTime?
-  isActive      Boolean     @default(true)
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-  benefitTypeId Int
-  benefitType   BenefitType @relation(fields: [benefitTypeId], references: [id])
-  employee      Employee    @relation(fields: [employeeId], references: [id])
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  employee      Employee @relation(fields: [employeeId], references: [id])
 }
 
 model Deduction {
-  id              Int           @id @default(autoincrement())
-  employeeId      String
-  type            String
-  value           Decimal
-  frequency       String
-  effectiveDate   DateTime
-  endDate         DateTime?
-  isActive        Boolean       @default(true)
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  deductionTypeId Int
-  deductionType   DeductionType @relation(fields: [deductionTypeId], references: [id])
-  employee        Employee      @relation(fields: [employeeId], references: [id])
-}
-
-model BenefitType {
-  id          Int       @id @default(autoincrement())
-  name        String    @unique
-  description String?
-  benefits    Benefit[]
-}
-
-model DeductionType {
-  id          Int         @id @default(autoincrement())
-  name        String      @unique
-  description String?
-  deductions  Deduction[]
+  id            Int      @id @default(autoincrement())
+  employeeId    String
+  name          String
+  value         Decimal
+  frequency     String
+  effectiveDate DateTime
+  endDate       DateTime?
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  employee      Employee @relation(fields: [employeeId], references: [id])
 }
 
 // ================== CANDIDATE MANAGEMENT ==================

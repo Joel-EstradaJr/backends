@@ -52,17 +52,12 @@ export const GET = withCors(async (request: NextRequest) => {
             isActive: true,
           },
           select: {
+            name: true,
             value: true,
             frequency: true,
             effectiveDate: true,
             endDate: true,
             isActive: true,
-            benefitType: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
           },
         },
         deductions: {
@@ -70,17 +65,12 @@ export const GET = withCors(async (request: NextRequest) => {
             isActive: true,
           },
           select: {
+            name: true,
             value: true,
             frequency: true,
             effectiveDate: true,
             endDate: true,
             isActive: true,
-            deductionType: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
           },
         },
       },
@@ -88,40 +78,40 @@ export const GET = withCors(async (request: NextRequest) => {
 
     // Transform data to match the required payload structure
     const transformedEmployees = employees.map((employee: any) => ({
-      payroll_period_start: payrollPeriodStart || "",
-      payroll_period_end: payrollPeriodEnd || "",
       employee_number: employee.employeeNumber,
-      basic_rate: employee.basicRate ? employee.basicRate.toString() : "",
-      rate_type: employee.rateType || "",
+      basic_rate: employee.basicRate ? employee.basicRate.toString() : "0.00",
+      rate_type: employee.rateType || "Weekly",
       attendances: employee.attendances.map((att: any) => ({
         date: att.date.toISOString().split("T")[0],
         status: att.status,
       })),
       benefits: employee.benefits.map((benefit: any) => ({
+        name: benefit.name,
         value: benefit.value.toString(),
-        frequency: benefit.frequency || "",
+        frequency: benefit.frequency,
         effective_date: benefit.effectiveDate.toISOString().split("T")[0],
         end_date: benefit.endDate ? benefit.endDate.toISOString().split("T")[0] : null,
         is_active: benefit.isActive,
-        benefit_type: {
-          id: benefit.benefitType.id.toString(),
-          name: benefit.benefitType.name,
-        },
       })),
       deductions: employee.deductions.map((deduction: any) => ({
+        name: deduction.name,
         value: deduction.value.toString(),
-        frequency: deduction.frequency || "",
+        frequency: deduction.frequency,
         effective_date: deduction.effectiveDate.toISOString().split("T")[0],
         end_date: deduction.endDate ? deduction.endDate.toISOString().split("T")[0] : null,
         is_active: deduction.isActive,
-        deduction_type: {
-          id: deduction.deductionType.id.toString(),
-          name: deduction.deductionType.name,
-        },
       })),
     }));
 
-    return NextResponse.json(transformedEmployees, { status: 200 });
+    // Build response with exact payload format
+    const response = {
+      payroll_period_start: payrollPeriodStart || "",
+      payroll_period_end: payrollPeriodEnd || "",
+      employees: transformedEmployees,
+      count: transformedEmployees.length,
+    };
+
+    return NextResponse.json(response, { status: 200 });
   } catch (err) {
     console.error("PAYROLL_ENDPOINT_ERROR", err);
     return NextResponse.json(

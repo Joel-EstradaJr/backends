@@ -39,8 +39,6 @@ async function main() {
 			prisma.benefit.deleteMany(),
 			prisma.deduction.deleteMany(),
 			prisma.attendance.deleteMany(),
-			prisma.benefitType.deleteMany(),
-			prisma.deductionType.deleteMany(),
 
 			// Auth and core HR
 			prisma.user.deleteMany(),
@@ -232,8 +230,8 @@ async function main() {
 		}
 	}
 
-	// Benefit & Deduction Types (>=10 each)
-	const benefitTypeNames = [
+	// Benefit & Deduction Names
+	const benefitNames = [
 		"Service Incentive Leave",
 		"Holiday Pay",
 		"13th Month Pay",
@@ -245,7 +243,7 @@ async function main() {
 		"Performance Bonus",
 		"Overtime Pay",
 	];
-	const deductionTypeNames = [
+	const deductionNames = [
 		"Cash Advance",
 		"PAG-IBIG",
 		"SSS",
@@ -258,41 +256,31 @@ async function main() {
 		"Other Deduction",
 	];
 
-	const benefitTypes = [] as { id: number; name: string }[];
-	for (const name of benefitTypeNames) {
-		benefitTypes.push(await prisma.benefitType.create({ data: { name } }));
-	}
-	const deductionTypes = [] as { id: number; name: string }[];
-	for (const name of deductionTypeNames) {
-		deductionTypes.push(await prisma.deductionType.create({ data: { name } }));
-	}
-
-	// Benefits & Deductions: exactly 1 each per employee (~10 per table), active
+	// Benefits & Deductions: exactly 1 each per employee
 	for (const e of employees) {
-		const bt = randPick(benefitTypes);
+		const benefitName = randPick(benefitNames);
 		await prisma.benefit.create({
 			data: {
 				employeeId: e.id,
+				name: benefitName,
 				value: dec(750),
-				frequency: randPick(["Once", "Monthly", "Daily", "Weekly", "Yearly"]),
+				frequency: randPick(["Once", "Monthly", "Daily", "Weekly", "Annually"]),
 				effectiveDate: addDays(today, -60),
 				endDate: null,
 				isActive: true,
-				benefitTypeId: bt.id,
 			},
 		});
 
-		const dt = randPick(deductionTypes);
+		const deductionName = randPick(deductionNames);
 		await prisma.deduction.create({
 			data: {
 				employeeId: e.id,
-				type: dt.name,
+				name: deductionName,
 				value: dec(200),
-				frequency: randPick(["Once", "Monthly", "Daily", "Weekly", "Yearly"]),
+				frequency: randPick(["Once", "Monthly", "Daily", "Weekly", "Annually"]),
 				effectiveDate: addDays(today, -90),
 				endDate: null,
 				isActive: true,
-				deductionTypeId: dt.id,
 			},
 		});
 	}
@@ -641,8 +629,8 @@ async function main() {
 		departments: departmentNames.length,
 		positions: positionSpecs.length,
 		employees: employees.length,
-		benefitTypes: benefitTypes.length,
-		deductionTypes: deductionTypes.length,
+
+
 		stops: stops.length,
 		routes: routes.length,
 		buses: buses.length,
