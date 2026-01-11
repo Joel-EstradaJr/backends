@@ -1,4 +1,4 @@
-npm install ; npm run db:migrate --name init ; npm run db:seed
+npm install ; npm run db:migrate --name final ; npm run db:seed
 npm run db:push
 
 npx prisma migrate reset

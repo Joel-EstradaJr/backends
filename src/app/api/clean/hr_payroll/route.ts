@@ -19,6 +19,17 @@ export const GET = withCors(async (request: NextRequest) => {
     const payrollPeriodStart = searchParams.get("payroll_period_start");
     const payrollPeriodEnd = searchParams.get("payroll_period_end");
 
+    // Payroll period dates are required
+    if (!payrollPeriodStart || !payrollPeriodEnd) {
+      return NextResponse.json(
+        { error: "payroll_period_start and payroll_period_end are required" },
+        { status: 400 }
+      );
+    }
+
+    const periodStart = new Date(payrollPeriodStart);
+    const periodEnd = new Date(payrollPeriodEnd);
+
     // Find employees excluding Driver and PAO positions
     const employees = await prisma.employee.findMany({
       where: {
@@ -28,20 +39,27 @@ export const GET = withCors(async (request: NextRequest) => {
             notIn: ["Driver", "PAO"],
           },
         },
+        // CRITICAL: Only include employees with attendance in the date range
+        attendances: {
+          some: {
+            date: {
+              gte: periodStart,
+              lte: periodEnd,
+            },
+          },
+        },
       },
       select: {
         employeeNumber: true,
         basicRate: true,
         rateType: true,
         attendances: {
-          where: payrollPeriodStart && payrollPeriodEnd
-            ? {
-                date: {
-                  gte: new Date(payrollPeriodStart),
-                  lte: new Date(payrollPeriodEnd),
-                },
-              }
-            : {},
+          where: {
+            date: {
+              gte: periodStart,
+              lte: periodEnd,
+            },
+          },
           select: {
             date: true,
             status: true,
@@ -50,6 +68,17 @@ export const GET = withCors(async (request: NextRequest) => {
         benefits: {
           where: {
             isActive: true,
+            effectiveDate: {
+              lte: periodEnd,
+            },
+            OR: [
+              { endDate: null },
+              {
+                endDate: {
+                  gte: periodStart,
+                },
+              },
+            ],
           },
           select: {
             name: true,
@@ -63,6 +92,17 @@ export const GET = withCors(async (request: NextRequest) => {
         deductions: {
           where: {
             isActive: true,
+            effectiveDate: {
+              lte: periodEnd,
+            },
+            OR: [
+              { endDate: null },
+              {
+                endDate: {
+                  gte: periodStart,
+                },
+              },
+            ],
           },
           select: {
             name: true,
@@ -105,8 +145,8 @@ export const GET = withCors(async (request: NextRequest) => {
 
     // Build response with exact payload format
     const response = {
-      payroll_period_start: payrollPeriodStart || "",
-      payroll_period_end: payrollPeriodEnd || "",
+      payroll_period_start: payrollPeriodStart,
+      payroll_period_end: payrollPeriodEnd,
       employees: transformedEmployees,
       count: transformedEmployees.length,
     };
