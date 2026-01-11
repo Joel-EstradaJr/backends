@@ -32,48 +32,79 @@ CREATE TYPE "BusSource" AS ENUM ('Dealer', 'Private', 'Auction', 'Other');
 CREATE TYPE "BusOperationStatus" AS ENUM ('Ready', 'NotReady', 'InTransit', 'Maintenance');
 
 -- CreateEnum
-CREATE TYPE "PaymentMethod" AS ENUM ('Cash', 'Card', 'Digital', 'Mixed');
+CREATE TYPE "PaymentMethod" AS ENUM ('Cash', 'Reimbursement', 'RenterDamage');
 
 -- CreateTable
-CREATE TABLE "Employee" (
+CREATE TABLE "Department" (
     "id" SERIAL NOT NULL,
-    "employeeNumber" TEXT NOT NULL,
-    "firstName" TEXT NOT NULL,
-    "middleName" TEXT,
-    "lastName" TEXT NOT NULL,
-    "suffix" TEXT,
-    "employeeStatus" TEXT NOT NULL,
-    "hiredate" TIMESTAMP(3) NOT NULL,
-    "terminationDate" TIMESTAMP(3),
-    "basicRate" DECIMAL(65,30) NOT NULL,
-    "positionId" INTEGER,
+    "departmentName" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
 
-    CONSTRAINT "Employee_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "Department_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "Position" (
     "id" SERIAL NOT NULL,
     "positionName" TEXT NOT NULL,
-    "departmentId" INTEGER,
+    "departmentId" INTEGER NOT NULL,
 
     CONSTRAINT "Position_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "Department" (
-    "id" SERIAL NOT NULL,
-    "departmentName" TEXT NOT NULL,
+CREATE TABLE "Employee" (
+    "id" TEXT NOT NULL,
+    "employeeNumber" TEXT NOT NULL,
+    "firstName" TEXT NOT NULL,
+    "lastName" TEXT NOT NULL,
+    "middleName" TEXT,
+    "suffix" TEXT,
+    "birthdate" TIMESTAMP(3) NOT NULL,
+    "hiredate" TIMESTAMP(3) NOT NULL,
+    "terminationDate" TIMESTAMP(3),
+    "terminationReason" TEXT,
+    "basicRate" DECIMAL(65,30),
+    "rateType" TEXT,
+    "employeeStatus" TEXT NOT NULL DEFAULT 'active',
+    "employeeType" TEXT NOT NULL DEFAULT 'regular',
+    "employeeClassification" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "phone" TEXT NOT NULL,
+    "email" TEXT,
+    "emergencyContactName" TEXT,
+    "emergencyContactNo" TEXT,
+    "barangay" TEXT NOT NULL,
+    "streetAddress" TEXT NOT NULL,
+    "city" TEXT NOT NULL,
+    "province" TEXT NOT NULL,
+    "zipCode" TEXT NOT NULL,
+    "country" TEXT NOT NULL,
+    "positionId" INTEGER NOT NULL,
+    "expireDate" TIMESTAMP(3),
+    "licenseNo" TEXT,
+    "licenseType" TEXT,
+    "restrictionCodes" TEXT[] DEFAULT ARRAY[]::TEXT[],
 
-    CONSTRAINT "Department_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "Employee_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "Attendance" (
     "id" SERIAL NOT NULL,
+    "employeeId" TEXT NOT NULL,
     "date" TIMESTAMP(3) NOT NULL,
     "status" TEXT NOT NULL,
-    "employeeId" INTEGER NOT NULL,
+    "timeIn" TIMESTAMP(3),
+    "timeOut" TIMESTAMP(3),
+    "remarks" TEXT,
+    "isHoliday" BOOLEAN NOT NULL DEFAULT false,
+    "overtimeHours" DOUBLE PRECISION,
+    "overtimeReason" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "Attendance_pkey" PRIMARY KEY ("id")
 );
@@ -81,46 +112,196 @@ CREATE TABLE "Attendance" (
 -- CreateTable
 CREATE TABLE "Benefit" (
     "id" SERIAL NOT NULL,
+    "employeeId" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
     "value" DECIMAL(65,30) NOT NULL,
     "frequency" TEXT NOT NULL,
     "effectiveDate" TIMESTAMP(3) NOT NULL,
     "endDate" TIMESTAMP(3),
-    "isActive" BOOLEAN NOT NULL,
-    "employeeId" INTEGER NOT NULL,
-    "benefitTypeId" INTEGER NOT NULL,
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "Benefit_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "BenefitType" (
-    "id" SERIAL NOT NULL,
-    "name" TEXT NOT NULL,
-
-    CONSTRAINT "BenefitType_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
 CREATE TABLE "Deduction" (
     "id" SERIAL NOT NULL,
-    "type" TEXT NOT NULL,
+    "employeeId" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
     "value" DECIMAL(65,30) NOT NULL,
     "frequency" TEXT NOT NULL,
     "effectiveDate" TIMESTAMP(3) NOT NULL,
     "endDate" TIMESTAMP(3),
-    "isActive" BOOLEAN NOT NULL,
-    "employeeId" INTEGER NOT NULL,
-    "deductionTypeId" INTEGER NOT NULL,
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "Deduction_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "DeductionType" (
+CREATE TABLE "Candidate" (
+    "id" TEXT NOT NULL,
+    "firstName" TEXT NOT NULL,
+    "middleName" TEXT,
+    "lastName" TEXT NOT NULL,
+    "suffix" TEXT,
+    "email" TEXT,
+    "streetAddress" TEXT NOT NULL,
+    "barangay" TEXT NOT NULL,
+    "city" TEXT NOT NULL,
+    "province" TEXT NOT NULL,
+    "country" TEXT NOT NULL,
+    "birthdate" TIMESTAMP(3) NOT NULL,
+    "applicationStatus" TEXT NOT NULL,
+    "applicationDate" TIMESTAMP(3) NOT NULL,
+    "sourceOfHire" TEXT,
+    "departmentId" INTEGER NOT NULL,
+    "desiredPositionId" INTEGER NOT NULL,
+    "interviewDate" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Candidate_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "CandidateWorkExperience" (
+    "id" SERIAL NOT NULL,
+    "candidateId" TEXT NOT NULL,
+    "companyName" TEXT NOT NULL,
+    "position" TEXT NOT NULL,
+    "startDate" TIMESTAMP(3) NOT NULL,
+    "endDate" TIMESTAMP(3),
+    "description" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "CandidateWorkExperience_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "CandidateEducation" (
+    "id" SERIAL NOT NULL,
+    "candidateId" TEXT NOT NULL,
+    "institution" TEXT NOT NULL,
+    "degree" TEXT NOT NULL,
+    "fieldOfStudy" TEXT,
+    "startDate" TIMESTAMP(3),
+    "endDate" TIMESTAMP(3),
+    "honors" TEXT,
+    "description" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "CandidateEducation_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "GovernmentID" (
+    "id" SERIAL NOT NULL,
+    "employeeId" TEXT NOT NULL,
+    "idNumber" TEXT NOT NULL,
+    "issuedDate" TIMESTAMP(3),
+    "expiryDate" TIMESTAMP(3),
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "typeId" INTEGER NOT NULL,
+
+    CONSTRAINT "GovernmentID_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "GovernmentIDType" (
     "id" SERIAL NOT NULL,
     "name" TEXT NOT NULL,
+    "description" TEXT,
 
-    CONSTRAINT "DeductionType_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "GovernmentIDType_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "WorkExperience" (
+    "id" SERIAL NOT NULL,
+    "employeeId" TEXT NOT NULL,
+    "companyName" TEXT NOT NULL,
+    "position" TEXT NOT NULL,
+    "startDate" TIMESTAMP(3) NOT NULL,
+    "endDate" TIMESTAMP(3),
+    "description" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "WorkExperience_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Education" (
+    "id" SERIAL NOT NULL,
+    "employeeId" TEXT NOT NULL,
+    "institution" TEXT,
+    "degree" TEXT,
+    "fieldOfStudy" TEXT,
+    "startDate" TIMESTAMP(3),
+    "endDate" TIMESTAMP(3),
+    "honors" TEXT,
+    "description" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Education_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "CashAdvanceRequest" (
+    "id" SERIAL NOT NULL,
+    "employeeId" TEXT NOT NULL,
+    "amount" DECIMAL(65,30) NOT NULL,
+    "reason" TEXT,
+    "requestDate" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "status" TEXT NOT NULL,
+    "approvedDate" TIMESTAMP(3),
+    "remarks" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "CashAdvanceRequest_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ResignationRequest" (
+    "id" SERIAL NOT NULL,
+    "employeeId" TEXT NOT NULL,
+    "reason" TEXT,
+    "requestDate" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "effectiveDate" TIMESTAMP(3) NOT NULL,
+    "status" TEXT NOT NULL,
+    "remarks" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "ResignationRequest_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "LeaveRequest" (
+    "id" SERIAL NOT NULL,
+    "employeeId" TEXT NOT NULL,
+    "leaveType" TEXT NOT NULL,
+    "startDate" TIMESTAMP(3) NOT NULL,
+    "endDate" TIMESTAMP(3) NOT NULL,
+    "reason" TEXT,
+    "status" TEXT NOT NULL,
+    "requestDate" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "approvedDate" TIMESTAMP(3),
+    "remarks" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "LeaveRequest_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -146,14 +327,12 @@ CREATE TABLE "SecurityQuestion" (
 -- CreateTable
 CREATE TABLE "User" (
     "id" SERIAL NOT NULL,
-    "employeeId" INTEGER NOT NULL,
+    "employeeId" TEXT NOT NULL,
     "email" TEXT NOT NULL,
     "password" TEXT NOT NULL,
     "firstName" TEXT NOT NULL,
     "lastName" TEXT NOT NULL,
     "birthdate" TIMESTAMP(3) NOT NULL,
-    "roleId" INTEGER NOT NULL,
-    "mustChangePassword" BOOLEAN NOT NULL DEFAULT true,
     "phone" TEXT,
     "streetAddress" TEXT,
     "barangay" TEXT,
@@ -161,6 +340,8 @@ CREATE TABLE "User" (
     "province" TEXT,
     "zipCode" TEXT,
     "country" TEXT,
+    "mustChangePassword" BOOLEAN NOT NULL DEFAULT true,
+    "roleId" INTEGER NOT NULL,
     "securityQuestionId" INTEGER NOT NULL,
     "securityAnswer" TEXT NOT NULL,
     "resetToken" TEXT,
@@ -231,7 +412,7 @@ CREATE TABLE "categories" (
 CREATE TABLE "employee_requests" (
     "request_id" VARCHAR(20) NOT NULL,
     "item_id" TEXT NOT NULL,
-    "emp_id" INTEGER NOT NULL,
+    "emp_id" TEXT NOT NULL,
     "request_type" "RequestType" NOT NULL,
     "quantity" INTEGER NOT NULL,
     "req_purpose" VARCHAR(255) NOT NULL,
@@ -420,8 +601,8 @@ CREATE TABLE "BusAssignment" (
 -- CreateTable
 CREATE TABLE "RegularBusAssignment" (
     "RegularBusAssignmentID" TEXT NOT NULL,
-    "DriverID" INTEGER NOT NULL,
-    "ConductorID" INTEGER NOT NULL,
+    "DriverID" TEXT NOT NULL,
+    "ConductorID" TEXT NOT NULL,
     "BusAssignmentID" TEXT NOT NULL,
     "LatestBusTripID" TEXT,
     "CreatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -477,14 +658,77 @@ CREATE TABLE "TicketBusTrip" (
     CONSTRAINT "TicketBusTrip_pkey" PRIMARY KEY ("TicketBusTripID")
 );
 
+-- CreateTable
+CREATE TABLE "units" (
+    "id" VARCHAR(20) NOT NULL,
+    "name" VARCHAR(100) NOT NULL,
+    "isdeleted" BOOLEAN NOT NULL DEFAULT false,
+
+    CONSTRAINT "units_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "items" (
+    "item_id" VARCHAR(20) NOT NULL,
+    "item_name" VARCHAR(100) NOT NULL,
+    "unit_id" TEXT NOT NULL,
+    "category_id" TEXT NOT NULL,
+    "isdeleted" BOOLEAN NOT NULL DEFAULT false,
+
+    CONSTRAINT "items_pkey" PRIMARY KEY ("item_id")
+);
+
+-- CreateTable
+CREATE TABLE "receipts" (
+    "receipt_id" VARCHAR(20) NOT NULL,
+    "isdeleted" BOOLEAN NOT NULL DEFAULT false,
+
+    CONSTRAINT "receipts_pkey" PRIMARY KEY ("receipt_id")
+);
+
+-- CreateTable
+CREATE TABLE "receipt_items" (
+    "id" TEXT NOT NULL,
+    "receipt_id" TEXT NOT NULL,
+    "item_id" TEXT NOT NULL,
+    "isInventoryProcessed" BOOLEAN NOT NULL DEFAULT false,
+    "isdeleted" BOOLEAN NOT NULL DEFAULT false,
+
+    CONSTRAINT "receipt_items_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "item_transactions" (
+    "transaction_id" VARCHAR(30) NOT NULL,
+    "transaction_date" TIMESTAMP(3) NOT NULL,
+    "item_id" TEXT NOT NULL,
+    "receipt_id" TEXT,
+    "quantity" DECIMAL(65,30) NOT NULL,
+    "isdeleted" BOOLEAN NOT NULL DEFAULT false,
+
+    CONSTRAINT "item_transactions_pkey" PRIMARY KEY ("transaction_id","item_id")
+);
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Department_departmentName_key" ON "Department"("departmentName");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Position_positionName_departmentId_key" ON "Position"("positionName", "departmentId");
+
 -- CreateIndex
 CREATE UNIQUE INDEX "Employee_employeeNumber_key" ON "Employee"("employeeNumber");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "BenefitType_name_key" ON "BenefitType"("name");
+CREATE UNIQUE INDEX "Employee_email_key" ON "Employee"("email");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "DeductionType_name_key" ON "DeductionType"("name");
+CREATE UNIQUE INDEX "Attendance_employeeId_date_key" ON "Attendance"("employeeId", "date");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "GovernmentID_employeeId_typeId_key" ON "GovernmentID"("employeeId", "typeId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "GovernmentIDType_name_key" ON "GovernmentIDType"("name");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Role_name_key" ON "Role"("name");
@@ -534,11 +778,17 @@ CREATE INDEX "RegularBusAssignment_ConductorID_idx" ON "RegularBusAssignment"("C
 -- CreateIndex
 CREATE UNIQUE INDEX "TicketBusTrip_BusTripID_TicketTypeID_key" ON "TicketBusTrip"("BusTripID", "TicketTypeID");
 
--- AddForeignKey
-ALTER TABLE "Employee" ADD CONSTRAINT "Employee_positionId_fkey" FOREIGN KEY ("positionId") REFERENCES "Position"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+-- CreateIndex
+CREATE UNIQUE INDEX "receipt_items_receipt_id_item_id_key" ON "receipt_items"("receipt_id", "item_id");
+
+-- CreateIndex
+CREATE INDEX "item_transactions_transaction_date_idx" ON "item_transactions"("transaction_date");
 
 -- AddForeignKey
-ALTER TABLE "Position" ADD CONSTRAINT "Position_departmentId_fkey" FOREIGN KEY ("departmentId") REFERENCES "Department"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "Position" ADD CONSTRAINT "Position_departmentId_fkey" FOREIGN KEY ("departmentId") REFERENCES "Department"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Employee" ADD CONSTRAINT "Employee_positionId_fkey" FOREIGN KEY ("positionId") REFERENCES "Position"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Attendance" ADD CONSTRAINT "Attendance_employeeId_fkey" FOREIGN KEY ("employeeId") REFERENCES "Employee"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -547,13 +797,40 @@ ALTER TABLE "Attendance" ADD CONSTRAINT "Attendance_employeeId_fkey" FOREIGN KEY
 ALTER TABLE "Benefit" ADD CONSTRAINT "Benefit_employeeId_fkey" FOREIGN KEY ("employeeId") REFERENCES "Employee"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Benefit" ADD CONSTRAINT "Benefit_benefitTypeId_fkey" FOREIGN KEY ("benefitTypeId") REFERENCES "BenefitType"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
 ALTER TABLE "Deduction" ADD CONSTRAINT "Deduction_employeeId_fkey" FOREIGN KEY ("employeeId") REFERENCES "Employee"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Deduction" ADD CONSTRAINT "Deduction_deductionTypeId_fkey" FOREIGN KEY ("deductionTypeId") REFERENCES "DeductionType"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "Candidate" ADD CONSTRAINT "Candidate_departmentId_fkey" FOREIGN KEY ("departmentId") REFERENCES "Department"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Candidate" ADD CONSTRAINT "Candidate_desiredPositionId_fkey" FOREIGN KEY ("desiredPositionId") REFERENCES "Position"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "CandidateWorkExperience" ADD CONSTRAINT "CandidateWorkExperience_candidateId_fkey" FOREIGN KEY ("candidateId") REFERENCES "Candidate"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "CandidateEducation" ADD CONSTRAINT "CandidateEducation_candidateId_fkey" FOREIGN KEY ("candidateId") REFERENCES "Candidate"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "GovernmentID" ADD CONSTRAINT "GovernmentID_employeeId_fkey" FOREIGN KEY ("employeeId") REFERENCES "Employee"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "GovernmentID" ADD CONSTRAINT "GovernmentID_typeId_fkey" FOREIGN KEY ("typeId") REFERENCES "GovernmentIDType"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "WorkExperience" ADD CONSTRAINT "WorkExperience_employeeId_fkey" FOREIGN KEY ("employeeId") REFERENCES "Employee"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Education" ADD CONSTRAINT "Education_employeeId_fkey" FOREIGN KEY ("employeeId") REFERENCES "Employee"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "CashAdvanceRequest" ADD CONSTRAINT "CashAdvanceRequest_employeeId_fkey" FOREIGN KEY ("employeeId") REFERENCES "Employee"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ResignationRequest" ADD CONSTRAINT "ResignationRequest_employeeId_fkey" FOREIGN KEY ("employeeId") REFERENCES "Employee"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "LeaveRequest" ADD CONSTRAINT "LeaveRequest_employeeId_fkey" FOREIGN KEY ("employeeId") REFERENCES "Employee"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "User" ADD CONSTRAINT "User_roleId_fkey" FOREIGN KEY ("roleId") REFERENCES "Role"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -628,6 +905,9 @@ ALTER TABLE "RouteStop" ADD CONSTRAINT "RouteStop_StopID_fkey" FOREIGN KEY ("Sto
 ALTER TABLE "BusAssignment" ADD CONSTRAINT "BusAssignment_RouteID_fkey" FOREIGN KEY ("RouteID") REFERENCES "Route"("RouteID") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "BusAssignment" ADD CONSTRAINT "BusAssignment_BusID_fkey" FOREIGN KEY ("BusID") REFERENCES "bus"("bus_id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "RegularBusAssignment" ADD CONSTRAINT "RegularBusAssignment_BusAssignmentID_fkey" FOREIGN KEY ("BusAssignmentID") REFERENCES "BusAssignment"("BusAssignmentID") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -647,3 +927,21 @@ ALTER TABLE "TicketBusTrip" ADD CONSTRAINT "TicketBusTrip_BusTripID_fkey" FOREIG
 
 -- AddForeignKey
 ALTER TABLE "TicketBusTrip" ADD CONSTRAINT "TicketBusTrip_TicketTypeID_fkey" FOREIGN KEY ("TicketTypeID") REFERENCES "TicketType"("TicketTypeID") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "items" ADD CONSTRAINT "items_unit_id_fkey" FOREIGN KEY ("unit_id") REFERENCES "units"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "items" ADD CONSTRAINT "items_category_id_fkey" FOREIGN KEY ("category_id") REFERENCES "categories"("category_id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "receipt_items" ADD CONSTRAINT "receipt_items_receipt_id_fkey" FOREIGN KEY ("receipt_id") REFERENCES "receipts"("receipt_id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "receipt_items" ADD CONSTRAINT "receipt_items_item_id_fkey" FOREIGN KEY ("item_id") REFERENCES "items"("item_id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "item_transactions" ADD CONSTRAINT "item_transactions_item_id_fkey" FOREIGN KEY ("item_id") REFERENCES "items"("item_id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "item_transactions" ADD CONSTRAINT "item_transactions_receipt_id_fkey" FOREIGN KEY ("receipt_id") REFERENCES "receipts"("receipt_id") ON DELETE SET NULL ON UPDATE CASCADE;
