@@ -1,0 +1,826 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Dummy Backend API",
+    "description": "API documentation for the Dummy Backend system - managing HR, Payroll, Operations, Inventory, and Fleet Management.",
+    "version": "1.0.0",
+    "contact": {
+      "name": "API Support"
+    }
+  },
+  "servers": [
+    {
+      "url": "/api",
+      "description": "API Base URL"
+    }
+  ],
+  "tags": [
+    { "name": "Employees", "description": "Employee management endpoints" },
+    { "name": "Payroll", "description": "Payroll calculation and data" },
+    { "name": "Bus Operations", "description": "Bus trips and assignments" },
+    { "name": "Buses", "description": "Bus fleet management" },
+    { "name": "Rentals", "description": "Bus rental management" },
+    { "name": "Inventory", "description": "FTMS Items and inventory" },
+    { "name": "Departments", "description": "Department management" },
+    { "name": "System", "description": "System status and health" }
+  ],
+  "paths": {
+    "/clean/hr_employees": {
+      "get": {
+        "tags": ["Employees"],
+        "summary": "Get all employees or a specific employee",
+        "description": "Returns a list of all employees or a specific employee by employee number",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "description": "Employee number to fetch specific employee",
+            "required": false,
+            "schema": { "type": "string" },
+            "example": "EMP-2024-NKFN57"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    { "$ref": "#/components/schemas/Employee" },
+                    { "$ref": "#/components/schemas/EmployeeList" }
+                  ]
+                },
+                "examples": {
+                  "single": {
+                    "summary": "Single employee",
+                    "value": {
+                      "employeeNumber": "EMP-2021-OPS-007",
+                      "firstName": "Mario",
+                      "middleName": "Ramos",
+                      "lastName": "Perez",
+                      "phone": "+639389025401",
+                      "position": "Driver",
+                      "barangay": "Santo Niño",
+                      "zipCode": "1100",
+                      "departmentId": 4,
+                      "department": "Operations"
+                    }
+                  },
+                  "list": {
+                    "summary": "Employee list",
+                    "value": {
+                      "employees": [
+                        {
+                          "employeeNumber": "EMP-2021-OPS-007",
+                          "firstName": "Mario",
+                          "middleName": "Ramos",
+                          "lastName": "Perez",
+                          "phone": "+639389025401",
+                          "position": "Driver",
+                          "barangay": "Santo Niño",
+                          "zipCode": "1100",
+                          "departmentId": 4,
+                          "department": "Operations"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Employee not found",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clean/hr_payroll": {
+      "get": {
+        "tags": ["Payroll"],
+        "summary": "Get payroll data for employees",
+        "description": "Returns payroll calculations including attendance, benefits, and deductions for a given period",
+        "parameters": [
+          {
+            "name": "payroll_period_start",
+            "in": "query",
+            "description": "Start date of payroll period (required)",
+            "required": true,
+            "schema": { "type": "string", "format": "date" },
+            "example": "2026-01-01"
+          },
+          {
+            "name": "payroll_period_end",
+            "in": "query",
+            "description": "End date of payroll period (required)",
+            "required": true,
+            "schema": { "type": "string", "format": "date" },
+            "example": "2026-01-15"
+          },
+          {
+            "name": "employee_number",
+            "in": "query",
+            "description": "Filter by specific employee number",
+            "required": false,
+            "schema": { "type": "string" },
+            "example": "EMP-2024-NKFN57"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response with payroll data",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PayrollResponse" }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing required parameters",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/clean/op_bus-trip-details": {
+      "get": {
+        "tags": ["Bus Operations"],
+        "summary": "Get bus trip details",
+        "description": "Returns bus trip details with driver/conductor information, expenses, and revenue",
+        "parameters": [
+          {
+            "name": "RequestType",
+            "in": "query",
+            "description": "Filter by request type",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["revenue", "expense"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/BusTripDetail" }
+                },
+                "example": [
+                  {
+                    "assignment_id": "BA-yfu9rzboxjfob4rl8gn0psfp",
+                    "bus_trip_id": "BT-n7w2yza9r2l6t1q6w31txyea",
+                    "bus_route": "Sapang Palay - PITX",
+                    "is_revenue_recorded": false,
+                    "is_expense_recorded": false,
+                    "date_assigned": "2026-01-10T00:00:00.000Z",
+                    "trip_fuel_expense": 200,
+                    "trip_revenue": 1000,
+                    "assignment_type": "PERCENTAGE",
+                    "assignment_value": 0.1,
+                    "payment_method": "Reimbursement",
+                    "employee_driver": {
+                      "employeeId": "clxyz123",
+                      "employeeNumber": "EMP-2021-OPS-D001",
+                      "firstName": "Mario",
+                      "lastName": "Perez"
+                    },
+                    "employee_conductor": {
+                      "employeeId": "clxyz456",
+                      "employeeNumber": "EMP-2021-OPS-C001",
+                      "firstName": "Jose",
+                      "lastName": "Domingo"
+                    },
+                    "bus_id": "BUS001",
+                    "bus_plate_number": "PLATE-0001",
+                    "bus_type": "Aircon",
+                    "body_number": "BODY-0001"
+                  }
+                ]
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      },
+      "patch": {
+        "tags": ["Bus Operations"],
+        "summary": "Update bus trip recorded flags",
+        "description": "Update IsRevenueRecorded and IsExpenseRecorded flags for bus trips",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["bus_trip_id"],
+                  "properties": {
+                    "bus_trip_id": { "type": "string" },
+                    "IsRevenueRecorded": { "type": "boolean" },
+                    "IsExpenseRecorded": { "type": "boolean" }
+                  }
+                }
+              },
+              "example": [
+                {
+                  "bus_trip_id": "BT-n7w2yza9r2l6t1q6w31txyea",
+                  "IsRevenueRecorded": true,
+                  "IsExpenseRecorded": true
+                }
+              ]
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Update results",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "updated": { "type": "array" },
+                    "failed": { "type": "array" }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body"
+          }
+        }
+      }
+    },
+    "/clean/buses": {
+      "get": {
+        "tags": ["Buses"],
+        "summary": "Get all buses or a specific bus",
+        "description": "Returns bus fleet information",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "description": "Bus ID to fetch specific bus",
+            "required": false,
+            "schema": { "type": "string" },
+            "example": "BUS001"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    { "$ref": "#/components/schemas/Bus" },
+                    { "$ref": "#/components/schemas/BusList" }
+                  ]
+                },
+                "example": {
+                  "id": 5,
+                  "bus_id": "BUS005",
+                  "license_plate": "PLATE-0005",
+                  "body_number": "BODY-0005",
+                  "type": "AIRCONDITIONED",
+                  "capacity": 41
+                }
+              }
+            }
+          },
+          "404": { "description": "Bus not found" },
+          "500": { "description": "Internal server error" }
+        }
+      },
+      "post": {
+        "tags": ["Buses"],
+        "summary": "Create a new bus",
+        "description": "Add a new bus to the fleet",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/BusCreate" },
+              "example": {
+                "license_plate": "PLATE-0026",
+                "body_number": "BODY-0026",
+                "type": "AIRCONDITIONED",
+                "capacity": 45
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Bus created successfully",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Bus" }
+              }
+            }
+          },
+          "400": { "description": "Invalid request" },
+          "500": { "description": "Internal server error" }
+        }
+      }
+    },
+    "/clean/rentals": {
+      "get": {
+        "tags": ["Rentals"],
+        "summary": "Get all rentals or a specific rental",
+        "description": "Returns rental assignments with bus and employee details",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "description": "Rental Assignment ID",
+            "required": false,
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Filter by rental status",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["pending", "confirmed", "in_progress", "completed", "cancelled"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/RentalAssignment" }
+                },
+                "example": [
+                  {
+                    "assignment_id": "RA-ppt19z6wl6tapo4bntaqurm4",
+                    "bus_id": "BUS021",
+                    "bus_plate_number": "PLATE-0021",
+                    "bus_type": "Aircon",
+                    "body_number": "BODY-0021",
+                    "rental_status": "completed",
+                    "rental_details": {
+                      "rental_id": "RENT-abc123",
+                      "rental_type": "Corporate Event",
+                      "rental_date": "2026-01-15T00:00:00.000Z",
+                      "return_date": "2026-01-16T00:00:00.000Z",
+                      "pickup_location": "Sapang Palay Terminal",
+                      "dropoff_location": "MOA Complex",
+                      "total_amount": 8500,
+                      "notes": null
+                    },
+                    "employees": [
+                      {
+                        "employeeId": "clxyz789",
+                        "employeeNumber": "EMP-2021-OPS-D001",
+                        "firstName": "Mario",
+                        "lastName": "Perez",
+                        "role": "Driver"
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          "404": { "description": "Rental not found" },
+          "500": { "description": "Internal server error" }
+        }
+      },
+      "post": {
+        "tags": ["Rentals"],
+        "summary": "Create a new rental",
+        "description": "Create a new bus rental with optional bus and employee assignments",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/RentalCreate" },
+              "example": {
+                "rental_date": "2026-02-01",
+                "return_date": "2026-02-02",
+                "rental_type": "Wedding",
+                "pickup_location": "SM City San Jose",
+                "dropoff_location": "Tagaytay City",
+                "total_amount": 12000,
+                "bus_id": "BUS021",
+                "employee_ids": [
+                  { "id": "employee-cuid-1", "role": "Driver" },
+                  { "id": "employee-cuid-2", "role": "Conductor" }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Rental created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "assignment_id": { "type": "string" },
+                    "rental_id": { "type": "string" },
+                    "message": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Invalid request" },
+          "500": { "description": "Internal server error" }
+        }
+      },
+      "patch": {
+        "tags": ["Rentals"],
+        "summary": "Update a rental",
+        "description": "Update rental status, details, or bus assignment",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["assignment_id"],
+                "properties": {
+                  "assignment_id": { "type": "string" },
+                  "status": { "type": "string" },
+                  "rental_type": { "type": "string" },
+                  "notes": { "type": "string" },
+                  "bus_id": { "type": "string" }
+                }
+              },
+              "example": {
+                "assignment_id": "RA-ppt19z6wl6tapo4bntaqurm4",
+                "status": "completed",
+                "notes": "Trip completed successfully"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Rental updated successfully" },
+          "400": { "description": "Invalid request" },
+          "404": { "description": "Rental not found" }
+        }
+      }
+    },
+    "/clean/ftms_items": {
+      "get": {
+        "tags": ["Inventory"],
+        "summary": "Get unprocessed FTMS items",
+        "description": "Returns unprocessed receipt items grouped by transaction",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "data": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/FTMSTransaction" }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": { "description": "Internal server error" }
+        }
+      },
+      "patch": {
+        "tags": ["Inventory"],
+        "summary": "Mark items as processed",
+        "description": "Update isInventoryProcessed flag for receipt items",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "receipt_id": { "type": "string" },
+                    "item_id": { "type": "string" },
+                    "isInventoryProcessed": { "type": "boolean" }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Items updated successfully" },
+          "400": { "description": "Invalid request" }
+        }
+      }
+    },
+    "/departments": {
+      "get": {
+        "tags": ["Departments"],
+        "summary": "Get all departments",
+        "description": "Returns a list of all departments",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/Department" }
+                },
+                "example": [
+                  { "id": 1, "departmentName": "Human Resource", "createdAt": "2026-01-01T00:00:00.000Z", "updatedAt": "2026-01-01T00:00:00.000Z" },
+                  { "id": 2, "departmentName": "Finance", "createdAt": "2026-01-01T00:00:00.000Z", "updatedAt": "2026-01-01T00:00:00.000Z" },
+                  { "id": 3, "departmentName": "Inventory", "createdAt": "2026-01-01T00:00:00.000Z", "updatedAt": "2026-01-01T00:00:00.000Z" },
+                  { "id": 4, "departmentName": "Operations", "createdAt": "2026-01-01T00:00:00.000Z", "updatedAt": "2026-01-01T00:00:00.000Z" }
+                ]
+              }
+            }
+          },
+          "500": { "description": "Internal server error" }
+        }
+      }
+    },
+    "/status": {
+      "get": {
+        "tags": ["System"],
+        "summary": "Get system status",
+        "description": "Returns database connection status and table counts",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SystemStatus" }
+              }
+            }
+          },
+          "500": { "description": "Database connection failed" }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Employee": {
+        "type": "object",
+        "properties": {
+          "employeeNumber": { "type": "string", "example": "EMP-2021-OPS-007" },
+          "firstName": { "type": "string", "example": "Mario" },
+          "middleName": { "type": "string", "example": "Ramos" },
+          "lastName": { "type": "string", "example": "Perez" },
+          "phone": { "type": "string", "example": "+639389025401" },
+          "position": { "type": "string", "example": "Driver" },
+          "barangay": { "type": "string", "example": "Santo Niño" },
+          "zipCode": { "type": "string", "example": "1100" },
+          "departmentId": { "type": "integer", "example": 4 },
+          "department": { "type": "string", "example": "Operations" }
+        }
+      },
+      "EmployeeList": {
+        "type": "object",
+        "properties": {
+          "employees": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Employee" }
+          }
+        }
+      },
+      "Bus": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer", "example": 5 },
+          "bus_id": { "type": "string", "example": "BUS005" },
+          "license_plate": { "type": "string", "example": "PLATE-0005" },
+          "body_number": { "type": "string", "example": "BODY-0005" },
+          "type": { "type": "string", "enum": ["AIRCONDITIONED", "NONAIRCON"], "example": "AIRCONDITIONED" },
+          "capacity": { "type": "integer", "example": 41 }
+        }
+      },
+      "BusList": {
+        "type": "object",
+        "properties": {
+          "buses": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Bus" }
+          }
+        }
+      },
+      "BusCreate": {
+        "type": "object",
+        "required": ["license_plate", "body_number"],
+        "properties": {
+          "license_plate": { "type": "string" },
+          "body_number": { "type": "string" },
+          "type": { "type": "string", "enum": ["AIRCONDITIONED", "NONAIRCON"] },
+          "capacity": { "type": "integer", "default": 45 }
+        }
+      },
+      "BusTripDetail": {
+        "type": "object",
+        "properties": {
+          "assignment_id": { "type": "string" },
+          "bus_trip_id": { "type": "string" },
+          "bus_route": { "type": "string" },
+          "is_revenue_recorded": { "type": "boolean" },
+          "is_expense_recorded": { "type": "boolean" },
+          "date_assigned": { "type": "string", "format": "date-time" },
+          "trip_fuel_expense": { "type": "number" },
+          "trip_revenue": { "type": "number" },
+          "assignment_type": { "type": "string", "enum": ["FIXED", "PERCENTAGE"] },
+          "assignment_value": { "type": "number" },
+          "payment_method": { "type": "string", "enum": ["Cash", "Reimbursement", "RenterDamage"] },
+          "employee_driver": { "$ref": "#/components/schemas/Employee" },
+          "employee_conductor": { "$ref": "#/components/schemas/Employee" },
+          "bus_id": { "type": "string" },
+          "bus_plate_number": { "type": "string" },
+          "bus_type": { "type": "string" },
+          "body_number": { "type": "string" }
+        }
+      },
+      "RentalAssignment": {
+        "type": "object",
+        "properties": {
+          "assignment_id": { "type": "string" },
+          "bus_id": { "type": "string", "nullable": true },
+          "bus_plate_number": { "type": "string" },
+          "bus_type": { "type": "string" },
+          "body_number": { "type": "string" },
+          "rental_status": { "type": "string", "enum": ["pending", "confirmed", "in_progress", "completed", "cancelled"] },
+          "rental_details": { "$ref": "#/components/schemas/RentalDetails" },
+          "employees": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/RentalEmployee" }
+          }
+        }
+      },
+      "RentalDetails": {
+        "type": "object",
+        "properties": {
+          "rental_id": { "type": "string" },
+          "rental_type": { "type": "string" },
+          "rental_date": { "type": "string", "format": "date-time" },
+          "return_date": { "type": "string", "format": "date-time", "nullable": true },
+          "pickup_location": { "type": "string" },
+          "dropoff_location": { "type": "string" },
+          "total_amount": { "type": "number" },
+          "notes": { "type": "string", "nullable": true }
+        }
+      },
+      "RentalEmployee": {
+        "type": "object",
+        "properties": {
+          "employeeId": { "type": "string" },
+          "employeeNumber": { "type": "string" },
+          "firstName": { "type": "string" },
+          "middleName": { "type": "string" },
+          "lastName": { "type": "string" },
+          "phone": { "type": "string" },
+          "position": { "type": "string" },
+          "role": { "type": "string" }
+        }
+      },
+      "RentalCreate": {
+        "type": "object",
+        "required": ["rental_date"],
+        "properties": {
+          "rental_date": { "type": "string", "format": "date" },
+          "return_date": { "type": "string", "format": "date" },
+          "rental_type": { "type": "string" },
+          "pickup_location": { "type": "string" },
+          "dropoff_location": { "type": "string" },
+          "total_amount": { "type": "number" },
+          "notes": { "type": "string" },
+          "bus_id": { "type": "string" },
+          "employee_ids": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": { "type": "string" },
+                "role": { "type": "string" }
+              }
+            }
+          }
+        }
+      },
+      "FTMSTransaction": {
+        "type": "object",
+        "properties": {
+          "transaction_id": { "type": "string" },
+          "transaction_date": { "type": "string", "format": "date-time" },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "receipt_id": { "type": "string" },
+                "item_id": { "type": "string" },
+                "item_name": { "type": "string" },
+                "item_unit": { "type": "string" },
+                "quantity": { "type": "number" }
+              }
+            }
+          }
+        }
+      },
+      "Department": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "departmentName": { "type": "string" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "PayrollResponse": {
+        "type": "object",
+        "properties": {
+          "payroll_period_start": { "type": "string", "format": "date" },
+          "payroll_period_end": { "type": "string", "format": "date" },
+          "employees": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "employee_number": { "type": "string" },
+                "basic_rate": { "type": "number" },
+                "rate_type": { "type": "string" },
+                "days_present": { "type": "integer" },
+                "days_absent": { "type": "integer" },
+                "benefits": { "type": "array" },
+                "deductions": { "type": "array" },
+                "gross_pay": { "type": "number" },
+                "net_pay": { "type": "number" }
+              }
+            }
+          }
+        }
+      },
+      "SystemStatus": {
+        "type": "object",
+        "properties": {
+          "database_status": { "type": "string" },
+          "tables": {
+            "type": "object",
+            "properties": {
+              "employees": { "type": "integer" },
+              "departments": { "type": "integer" },
+              "routes": { "type": "integer" },
+              "buses": { "type": "integer" },
+              "bus_assignments": { "type": "integer" }
+            }
+          },
+          "endpoints": { "type": "object" },
+          "timestamp": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": { "type": "string" }
+        }
+      }
+    }
+  }
+}

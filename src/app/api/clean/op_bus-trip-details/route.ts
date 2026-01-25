@@ -5,6 +5,21 @@ import prisma from '@/client';
 import { withCors } from '@/lib/withcors';
 import { authenticateRequest } from '@/lib/auth';
 
+// Helper to format employee object matching the required payload structure
+const formatEmployee = (emp: any) => emp ? ({
+  employeeId: emp.id,
+  employeeNumber: emp.employeeNumber,
+  firstName: emp.firstName,
+  middleName: emp.middleName || '',
+  lastName: emp.lastName,
+  phone: emp.phone,
+  position: emp.position?.positionName || '',
+  barangay: emp.barangay,
+  zipCode: emp.zipCode,
+  departmentId: emp.position?.department?.id ?? 0,
+  department: emp.position?.department?.departmentName || '',
+}) : null;
+
 const getAssignmentSummary = async (request: NextRequest) => {
   const { error, token, status } = await authenticateRequest(request);
   // Auth disabled for testing - uncomment for production
@@ -53,8 +68,52 @@ const getAssignmentSummary = async (request: NextRequest) => {
           select: {
             DriverID: true,
             ConductorID: true,
-            driver: { select: { firstName: true, lastName: true } },
-            conductor: { select: { firstName: true, lastName: true } },
+            driver: {
+              select: {
+                id: true,
+                employeeNumber: true,
+                firstName: true,
+                middleName: true,
+                lastName: true,
+                phone: true,
+                barangay: true,
+                zipCode: true,
+                position: {
+                  select: {
+                    positionName: true,
+                    department: {
+                      select: {
+                        id: true,
+                        departmentName: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            conductor: {
+              select: {
+                id: true,
+                employeeNumber: true,
+                firstName: true,
+                middleName: true,
+                lastName: true,
+                phone: true,
+                barangay: true,
+                zipCode: true,
+                position: {
+                  select: {
+                    positionName: true,
+                    department: {
+                      select: {
+                        id: true,
+                        departmentName: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
             BusTrips: {
               where: tripConditions,
               select: {
@@ -80,6 +139,7 @@ const getAssignmentSummary = async (request: NextRequest) => {
         // Get bus details from our unified schema
         Bus: {
           select: {
+            bus_id: true,
             plate_number: true,
             bus_type: true,
             body_number: true,
@@ -88,7 +148,7 @@ const getAssignmentSummary = async (request: NextRequest) => {
       },
     });
 
-    // Process results to match raw endpoint output structure
+    // Process results to match the required payload structure
     const result = assignments.flatMap(a => {
       const busTrips = a.RegularBusAssignment?.BusTrips || [];
       const quotaPolicies = a.RegularBusAssignment?.QuotaPolicies || [];
@@ -107,23 +167,20 @@ const getAssignmentSummary = async (request: NextRequest) => {
           );
         }
 
-        let assignment_type = null;
-        let assignment_value = null;
+        let assignment_type: string | null = null;
+        let assignment_value: number | null = null;
         if (quotaPolicy?.Fixed) {
-          assignment_type = 'Boundary';
+          assignment_type = 'FIXED';
           assignment_value = quotaPolicy.Fixed.Quota;
         } else if (quotaPolicy?.Percentage) {
-          assignment_type = 'Percentage';
+          assignment_type = 'PERCENTAGE';
           assignment_value = quotaPolicy.Percentage.Percentage;
-        } else {
-          assignment_type = 'Bus Rental';
-          assignment_value = null;
         }
 
-        // Output structure matching raw endpoint exactly
+        // Output structure matching the required payload exactly
         return {
-          assignment_id: a.BusAssignmentID,
-          bus_trip_id: trip.BusTripID,
+          assignment_id: `BA-${a.BusAssignmentID.toLowerCase().replace(/[^a-z0-9]/g, '')}`,
+          bus_trip_id: `BT-${trip.BusTripID.toLowerCase().replace(/[^a-z0-9]/g, '')}`,
           bus_route: a.Route?.RouteName || null,
           is_revenue_recorded: trip?.IsRevenueRecorded ?? false,
           is_expense_recorded: trip?.IsExpenseRecorded ?? false,
@@ -133,8 +190,11 @@ const getAssignmentSummary = async (request: NextRequest) => {
           assignment_type,
           assignment_value,
           payment_method: trip?.Payment_Method ?? null,
-          driver_name: driver ? `${driver.firstName} ${driver.lastName}` : null,
-          conductor_name: conductor ? `${conductor.firstName} ${conductor.lastName}` : null,
+          // Full employee objects as per required payload
+          employee_driver: formatEmployee(driver),
+          employee_conductor: formatEmployee(conductor),
+          // Bus details
+          bus_id: bus?.bus_id ?? null,
           bus_plate_number: bus?.plate_number ?? null,
           bus_type: bus?.bus_type ?? null,
           body_number: bus?.body_number ?? null,

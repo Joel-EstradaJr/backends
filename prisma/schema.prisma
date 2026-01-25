@@ -88,6 +88,7 @@ model Employee {
   // Operations relations
   regularBusAssignmentsAsDriver   RegularBusAssignment[] @relation("DriverAssignments")
   regularBusAssignmentsAsConductor RegularBusAssignment[] @relation("ConductorAssignments")
+  rentalEmployees                  RentalEmployee[]
 }
 
 // ================== HR DATA ==================
@@ -460,6 +461,7 @@ model Bus {
   brandNewDetails       BrandNewDetails?
   busOtherFiles         BusOtherFiles[]
   busAssignments        BusAssignment[]
+  rentalAssignments     RentalAssignment[]
 
   @@map("bus")
 }
@@ -698,6 +700,56 @@ model TicketBusTrip {
   @@unique([BusTripID, TicketTypeID])
 }
 
+// ---------------- RENTAL MANAGEMENT ----------------
+
+model Rental {
+  RentalID          String       @id
+  RentalStatus      RentalStatus @default(pending)
+  RentalType        String?      // E.g., "Corporate", "Event", "Private"
+  RentalDate        DateTime
+  ReturnDate        DateTime?
+  PickupLocation    String?
+  DropoffLocation   String?
+  TotalAmount       Decimal?
+  Notes             String?
+  IsDeleted         Boolean      @default(false)
+  CreatedAt         DateTime     @default(now())
+  UpdatedAt         DateTime     @updatedAt
+  CreatedBy         String?
+  UpdatedBy         String?
+
+  rentalAssignments RentalAssignment[]
+}
+
+model RentalAssignment {
+  RentalAssignmentID String @id
+  RentalID           String
+  BusID              String?
+  
+  IsDeleted          Boolean  @default(false)
+  CreatedAt          DateTime @default(now())
+  UpdatedAt          DateTime @updatedAt
+  CreatedBy          String?
+  UpdatedBy          String?
+
+  rental             Rental   @relation(fields: [RentalID], references: [RentalID], onDelete: Cascade)
+  bus                Bus?     @relation(fields: [BusID], references: [bus_id])
+  employees          RentalEmployee[]
+}
+
+model RentalEmployee {
+  id                   String           @id @default(cuid())
+  RentalAssignmentID   String
+  EmployeeID           String
+  Role                 String?          // E.g., "Driver", "Conductor", "Attendant"
+  CreatedAt            DateTime         @default(now())
+
+  rentalAssignment     RentalAssignment @relation(fields: [RentalAssignmentID], references: [RentalAssignmentID], onDelete: Cascade)
+  employee             Employee         @relation(fields: [EmployeeID], references: [id])
+
+  @@unique([RentalAssignmentID, EmployeeID])
+}
+
 // ---------------- ENUMS ----------------
 
 enum InventoryStatus {
@@ -778,6 +830,14 @@ enum PaymentMethod {
   Cash
   Reimbursement
   RenterDamage
+}
+
+enum RentalStatus {
+  pending
+  confirmed
+  in_progress
+  completed
+  cancelled
 }
 
 // ---------------- FTMS (Items, Receipts, Transactions) ----------------

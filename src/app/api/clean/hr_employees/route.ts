@@ -16,7 +16,8 @@ export const GET = async (request: NextRequest) => {
           middleName: true,
           lastName: true,
           phone: true,
-          suffix: true,
+          barangay: true,
+          zipCode: true,
           position: {
             select: {
               positionName: true,
@@ -45,6 +46,8 @@ export const GET = async (request: NextRequest) => {
         lastName: emp.lastName,
         phone: emp.phone,
         position: emp.position?.positionName || "",
+        barangay: emp.barangay,
+        zipCode: emp.zipCode,
         departmentId: emp.position?.department?.id ?? 0,
         department: emp.position?.department?.departmentName || "",
       };
@@ -59,7 +62,8 @@ export const GET = async (request: NextRequest) => {
           middleName: true,
           lastName: true,
           phone: true,
-          suffix: true,
+          barangay: true,
+          zipCode: true,
           position: {
             select: {
               positionName: true,
@@ -81,11 +85,13 @@ export const GET = async (request: NextRequest) => {
         lastName: emp.lastName,
         phone: emp.phone,
         position: emp.position?.positionName || "",
+        barangay: emp.barangay,
+        zipCode: emp.zipCode,
         departmentId: emp.position?.department?.id ?? 0,
         department: emp.position?.department?.departmentName || "",
       }));
 
-      return NextResponse.json(result, { status: 200 });
+      return NextResponse.json({ employees: result }, { status: 200 });
     }
   } catch (error) {
     console.error("FETCH_EMPLOYEES_ERROR:", error);
